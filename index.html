@@ -30,8 +30,75 @@
       <div class="toolbar-row toolbar-row-secondary">
         <span id="cell-coordinate" class="cell-coordinate">—</span>
         <div class="toolbar-secondary-end">
-          <span id="grid-size-label" class="grid-size-label">5행 × 5열</span>
           <div class="toolbar-actions">
+            <div class="toolbar-history" role="group" aria-label="실행 취소 및 다시 실행">
+              <button
+                id="undo-btn"
+                type="button"
+                class="history-btn"
+                disabled
+                aria-label="실행 취소"
+              >
+                <svg
+                  class="history-btn-icon history-btn-icon--undo"
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path
+                    d="m15 14 5-5-5-5"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M20 9H10a5 5 0 0 0 0 10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                <span class="history-btn-shortcut" id="undo-shortcut-label"></span>
+              </button>
+              <button
+                id="redo-btn"
+                type="button"
+                class="history-btn"
+                disabled
+                aria-label="다시 실행"
+              >
+                <svg
+                  class="history-btn-icon"
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path
+                    d="m15 14 5-5-5-5"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M20 9H10a5 5 0 0 0 0 10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                <span class="history-btn-shortcut" id="redo-shortcut-label"></span>
+              </button>
+            </div>
             <button
               id="help-guide-btn"
               type="button"
@@ -68,9 +135,12 @@
       </div>
     </header>
 
-    <section class="grid-wrapper">
-      <div id="spreadsheet" class="spreadsheet" aria-label="스프레드시트 그리드"></div>
-    </section>
+    <div class="sheet-panel">
+      <section class="grid-wrapper">
+        <div id="spreadsheet" class="spreadsheet" aria-label="스프레드시트 그리드"></div>
+      </section>
+      <span id="grid-size-label" class="grid-size-label" aria-live="polite">5행 × 5열</span>
+    </div>
   </main>
 
   <menu id="context-menu" class="context-menu hidden" type="context"></menu>

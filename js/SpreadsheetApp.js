@@ -2,6 +2,8 @@ import { CONFIG, SAVE_DEBOUNCE_MS } from './constants.js';
 import { formatCellAddress } from './utils/cellAddress.js';
 import {
   getArrowDelta,
+  getRedoShortcutLabel,
+  getUndoShortcutLabel,
   isCopyShortcut,
   isGridKeyboardTarget,
   isPasteShortcut,
@@ -56,6 +58,10 @@ export class SpreadsheetApp {
     this.refs = {
       coordinate: document.getElementById('cell-coordinate'),
       gridSize: document.getElementById('grid-size-label'),
+      undoBtn: document.getElementById('undo-btn'),
+      redoBtn: document.getElementById('redo-btn'),
+      undoShortcutLabel: document.getElementById('undo-shortcut-label'),
+      redoShortcutLabel: document.getElementById('redo-shortcut-label'),
       exportBtn: document.getElementById('export-btn'),
     };
   }
@@ -66,12 +72,46 @@ export class SpreadsheetApp {
     this.grid.render();
     this.model.clearSelection();
     this.bindGlobalEvents();
+    this.setupHistoryButtons();
     this.refreshSelectionUI();
   }
 
   finishTitleEditIfActive() {
     if (this.titleEditor.isEditing()) {
       this.titleEditor.finishEdit(false);
+    }
+  }
+
+  setupHistoryButtons() {
+    const undoLabel = getUndoShortcutLabel();
+    const redoLabel = getRedoShortcutLabel();
+
+    if (this.refs.undoShortcutLabel) {
+      this.refs.undoShortcutLabel.textContent = `(${undoLabel})`;
+    }
+    if (this.refs.redoShortcutLabel) {
+      this.refs.redoShortcutLabel.textContent = `(${redoLabel})`;
+    }
+    if (this.refs.undoBtn) {
+      this.refs.undoBtn.setAttribute('aria-label', `실행 취소 ${undoLabel}`);
+      this.refs.undoBtn.title = `실행 취소 (${undoLabel})`;
+      this.refs.undoBtn.addEventListener('click', () => this.undo());
+    }
+    if (this.refs.redoBtn) {
+      this.refs.redoBtn.setAttribute('aria-label', `다시 실행 ${redoLabel}`);
+      this.refs.redoBtn.title = `다시 실행 (${redoLabel})`;
+      this.refs.redoBtn.addEventListener('click', () => this.redo());
+    }
+
+    this.updateHistoryButtons();
+  }
+
+  updateHistoryButtons() {
+    if (this.refs.undoBtn) {
+      this.refs.undoBtn.disabled = !this.history.canUndo();
+    }
+    if (this.refs.redoBtn) {
+      this.refs.redoBtn.disabled = !this.history.canRedo();
     }
   }
 
@@ -90,7 +130,8 @@ export class SpreadsheetApp {
         if (
           !event.target.closest('#spreadsheet') &&
           !event.target.closest('#help-guide-modal') &&
-          !event.target.closest('#help-guide-btn')
+          !event.target.closest('#help-guide-btn') &&
+          !event.target.closest('.toolbar-history')
         ) {
           this.clearCellSelection();
         }
@@ -197,6 +238,7 @@ export class SpreadsheetApp {
 
   pushUndoSnapshot() {
     this.history.push(this.model.createSnapshot());
+    this.updateHistoryButtons();
   }
 
   applySnapshot(snapshot) {
@@ -204,6 +246,7 @@ export class SpreadsheetApp {
     this.editUndoRecorded = false;
     this.grid.render();
     this.persist();
+    this.updateHistoryButtons();
   }
 
   syncActiveCellFromInput() {
@@ -231,7 +274,9 @@ export class SpreadsheetApp {
     const snapshot = this.history.undo(this.model.createSnapshot());
     if (snapshot) {
       this.applySnapshot(snapshot);
+      return;
     }
+    this.updateHistoryButtons();
   }
 
   redo() {
@@ -240,7 +285,9 @@ export class SpreadsheetApp {
     const snapshot = this.history.redo(this.model.createSnapshot());
     if (snapshot) {
       this.applySnapshot(snapshot);
+      return;
     }
+    this.updateHistoryButtons();
   }
 
   blurActiveCellInput() {

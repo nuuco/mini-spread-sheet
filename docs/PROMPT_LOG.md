@@ -538,3 +538,13 @@ GridRenderer model.cols undefined 오류 / 파비콘·모서리칸 README·AGENT
 > 의도/반영: `HelpGuide.js`·「사용 가이드」버튼·모달(기능 카드 목록). 툴바 1행 제목·2행 좌표·크기·가이드·Export. UI: 테이블→카드형, 인포 SVG, 모바일 줄바꿈·가로 스크롤·하단 시트·좁은 화면「가이드」/「Export」 짧은 라벨. AGENTS.md 반영.
 
 ---
+
+- 프롬프트:
+
+```
+실행취소·다시실행을 툴바에 아이콘 버튼으로 넣어줘. 옆에 (⌘Z)처럼 단축키도 보이게. 아이콘은 figma 느낌으로, 실행취소는 다시실행이랑 대칭되게.
+```
+
+> 의도/반영: `toolbar-history`에 undo/redo 아이콘 버튼 추가·`UndoStack`과 disabled 연동. OS별 `(⌘Z)`/`(Ctrl+Z)`·호버 `title`. 곡선 화살 SVG, 실행 취소는 다시 실행 아이콘 좌우 반전. 아이콘 크기·진한 회색 톤, 단축키는 연한색(모바일은 아이콘만). AGENTS.md 반영.
+
+---

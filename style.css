@@ -11,6 +11,9 @@
   --color-text: #0f172a;
   --color-text-secondary: #475569;
   --color-text-muted: #64748b;
+  --color-text-hint: #9aa8b8;
+  --color-icon: #6d7a8a;
+  --color-icon-hover: #5a6575;
   --color-text-inverse: #ffffff;
 
   --color-accent: #3b82f6;
@@ -180,13 +183,24 @@ body {
   white-space: nowrap;
 }
 
+.sheet-panel {
+  position: relative;
+}
+
 .grid-size-label {
-  flex-shrink: 0;
-  font-size: 0.875rem;
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  z-index: 5;
+  pointer-events: none;
+  font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: var(--color-text-hint);
   white-space: nowrap;
-  text-align: right;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.06);
 }
 
 .toolbar-actions {
@@ -194,6 +208,70 @@ body {
   flex-shrink: 0;
   align-items: center;
   gap: 8px;
+}
+
+.toolbar-history {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 4px;
+  border-right: 1px solid var(--color-border-subtle);
+  margin-right: 4px;
+}
+
+.history-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.history-btn:hover:not(:disabled) {
+  background: var(--color-bg-muted);
+  border-color: var(--color-accent-muted);
+}
+
+.history-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.history-btn-icon {
+  flex-shrink: 0;
+  display: block;
+  width: 22px;
+  height: 22px;
+  color: var(--color-icon);
+  transition: color 0.15s ease;
+}
+
+.history-btn:hover:not(:disabled) .history-btn-icon {
+  color: var(--color-icon-hover);
+}
+
+.history-btn-icon--undo {
+  transform: scaleX(-1);
+}
+
+.history-btn-shortcut {
+  font-size: 0.625rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--color-text-hint);
+  letter-spacing: -0.01em;
+}
+
+.history-btn:hover:not(:disabled) .history-btn-shortcut {
+  color: #8f9dab;
 }
 
 .help-guide-btn {
@@ -619,20 +697,28 @@ body.help-guide-open {
     width: 100%;
   }
 
-  .grid-size-label {
-    font-size: 0.8125rem;
-  }
-
   .toolbar-actions {
     flex: 1 1 auto;
     justify-content: flex-end;
     gap: 6px;
   }
 
+  .grid-size-label {
+    right: 8px;
+    bottom: 6px;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+  }
+
   .help-guide-btn,
-  .export-btn {
+  .export-btn,
+  .history-btn {
     min-height: 40px;
     font-size: 0.875rem;
+  }
+
+  .history-btn-shortcut {
+    display: none;
   }
 
   .export-btn {
@@ -690,6 +776,20 @@ body.help-guide-open {
 
   .toolbar-actions {
     width: 100%;
+  }
+
+  .toolbar-history {
+    flex: 1;
+    justify-content: flex-start;
+    padding-right: 0;
+    margin-right: 0;
+    border-right: none;
+  }
+
+  .history-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 10px;
   }
 
   .help-guide-btn,

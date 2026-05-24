@@ -42,3 +42,21 @@ export function getArrowDelta(key) {
 export function isNewlineShortcut(event) {
   return event.metaKey || event.ctrlKey;
 }
+
+export function isMacLikePlatform() {
+  if (typeof navigator === 'undefined') {
+    return false;
+  }
+  return (
+    /Mac|iPhone|iPad|iPod/i.test(navigator.platform) ||
+    navigator.userAgentData?.platform === 'macOS'
+  );
+}
+
+export function getUndoShortcutLabel() {
+  return isMacLikePlatform() ? '⌘Z' : 'Ctrl+Z';
+}
+
+export function getRedoShortcutLabel() {
+  return isMacLikePlatform() ? '⇧⌘Z' : 'Ctrl+Y';
+}
