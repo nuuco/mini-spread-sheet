@@ -246,8 +246,14 @@ body {
   box-shadow: 0 2px 10px rgba(22, 163, 74, 0.35);
 }
 
+.export-btn-text--short,
+.help-guide-btn-label--short {
+  display: none;
+}
+
 .grid-wrapper {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
@@ -258,6 +264,7 @@ body {
 .grid-table {
   border-collapse: collapse;
   width: 100%;
+  min-width: 360px;
   table-layout: fixed;
 }
 
@@ -569,4 +576,129 @@ body.is-dragging .col-header {
 
 body.help-guide-open {
   overflow: hidden;
+}
+
+/* —— 모바일·좁은 화면 —— */
+@media (max-width: 720px) {
+  .app {
+    padding: 16px max(12px, env(safe-area-inset-right)) 20px
+      max(12px, env(safe-area-inset-left));
+  }
+
+  .toolbar {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .sheet-title-field {
+    font-size: 1.2rem;
+    min-height: 36px;
+  }
+
+  .toolbar-row-secondary {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px 10px;
+  }
+
+  .cell-coordinate {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .toolbar-secondary-end {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 10px;
+    width: 100%;
+  }
+
+  .grid-size-label {
+    font-size: 0.8125rem;
+  }
+
+  .toolbar-actions {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .help-guide-btn,
+  .export-btn {
+    min-height: 40px;
+    font-size: 0.875rem;
+  }
+
+  .export-btn {
+    padding: 10px 14px;
+  }
+
+  .help-guide-modal {
+    padding: max(12px, env(safe-area-inset-top)) 10px
+      max(12px, env(safe-area-inset-bottom));
+    align-items: flex-end;
+  }
+
+  .help-guide-panel {
+    width: 100%;
+    max-height: min(88vh, 100%);
+    border-radius: 12px 12px 0 0;
+  }
+
+  .help-guide-body {
+    padding: 12px 14px max(16px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 480px) {
+  .help-guide-btn-label--full {
+    display: none;
+  }
+
+  .help-guide-btn-label--short {
+    display: inline;
+  }
+
+  .help-guide-btn {
+    gap: 5px;
+    padding: 10px 12px 10px 10px;
+  }
+
+  .export-btn-text--full {
+    display: none;
+  }
+
+  .export-btn-text--short {
+    display: inline;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+  }
+
+  .help-guide-btn,
+  .export-btn {
+    display: inline-flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cell,
+  .col-header,
+  .row-header {
+    height: 40px;
+  }
+
+  .cell-input {
+    height: 40px;
+    line-height: 40px;
+  }
+
+  .cell.editing .cell-input:not(.multiline) {
+    line-height: 38px;
+  }
 }

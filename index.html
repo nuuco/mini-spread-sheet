@@ -32,7 +32,12 @@
         <div class="toolbar-secondary-end">
           <span id="grid-size-label" class="grid-size-label">5행 × 5열</span>
           <div class="toolbar-actions">
-            <button id="help-guide-btn" type="button" class="help-guide-btn">
+            <button
+              id="help-guide-btn"
+              type="button"
+              class="help-guide-btn"
+              aria-label="사용 가이드"
+            >
               <svg
                 class="help-guide-btn-icon"
                 width="18"
@@ -51,9 +56,13 @@
                   stroke-linecap="round"
                 />
               </svg>
-              사용 가이드
+              <span class="help-guide-btn-label help-guide-btn-label--full">사용 가이드</span>
+              <span class="help-guide-btn-label help-guide-btn-label--short" aria-hidden="true">가이드</span>
             </button>
-            <button id="export-btn" type="button" class="export-btn">Export Excel</button>
+            <button id="export-btn" type="button" class="export-btn">
+              <span class="export-btn-text export-btn-text--full">Export Excel</span>
+              <span class="export-btn-text export-btn-text--short" aria-hidden="true">Export</span>
+            </button>
           </div>
         </div>
       </div>
