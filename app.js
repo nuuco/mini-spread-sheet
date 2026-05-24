@@ -92,6 +92,20 @@ function isSingleCellSelection() {
   return bounds.rowMin === bounds.rowMax && bounds.colMin === bounds.colMax;
 }
 
+function getActiveCell() {
+  const bounds = getSelectionBounds();
+
+  if (spreadsheet.selectionKind === 'row') {
+    return { row: bounds.rowMin, col: 0 };
+  }
+
+  if (spreadsheet.selectionKind === 'column') {
+    return { row: 0, col: bounds.colMin };
+  }
+
+  return { row: spreadsheet.focus.row, col: spreadsheet.focus.col };
+}
+
 function getCellInput(row, col) {
   return document.querySelector(
     `.cell[data-row="${row}"][data-col="${col}"] .cell-input`,
@@ -106,7 +120,7 @@ function updateSelectionUI() {
 }
 
 function syncInputEditState() {
-  const { row, col } = spreadsheet.focus;
+  const { row, col } = getActiveCell();
   const isEditing = spreadsheet.mode === 'edit' && isSingleCellSelection();
 
   document.querySelectorAll('.cell').forEach((cell) => {
@@ -125,10 +139,10 @@ function syncInputEditState() {
 
 function setRowSelection(row, extend = false) {
   if (extend) {
-    spreadsheet.focus = { row, col: spreadsheet.cols - 1 };
+    spreadsheet.focus = { row, col: 0 };
   } else {
     spreadsheet.anchor = { row, col: 0 };
-    spreadsheet.focus = { row, col: spreadsheet.cols - 1 };
+    spreadsheet.focus = { row, col: 0 };
   }
   spreadsheet.selectionKind = 'row';
   spreadsheet.mode = 'select';
@@ -138,10 +152,10 @@ function setRowSelection(row, extend = false) {
 
 function setColumnSelection(col, extend = false) {
   if (extend) {
-    spreadsheet.focus = { row: spreadsheet.rows - 1, col };
+    spreadsheet.focus = { row: 0, col };
   } else {
     spreadsheet.anchor = { row: 0, col };
-    spreadsheet.focus = { row: spreadsheet.rows - 1, col };
+    spreadsheet.focus = { row: 0, col };
   }
   spreadsheet.selectionKind = 'column';
   spreadsheet.mode = 'select';
@@ -185,7 +199,7 @@ function enterEditMode(row, col) {
 }
 
 function startTypingInActiveCell(char) {
-  const { row, col } = spreadsheet.focus;
+  const { row, col } = getActiveCell();
 
   spreadsheet.anchor = { row, col };
   spreadsheet.focus = { row, col };
@@ -248,8 +262,9 @@ function updateCoordinateDisplay() {
 
 function updateHeaderHighlights() {
   const bounds = getSelectionBounds();
-  const { selectionKind, focus } = spreadsheet;
+  const { selectionKind } = spreadsheet;
   const singleCell = isSingleCellSelection();
+  const activeCell = getActiveCell();
 
   document.querySelectorAll('.col-header').forEach((header) => {
     const col = Number(header.dataset.col);
@@ -258,7 +273,7 @@ function updateHeaderHighlights() {
     if (selectionKind === 'column') {
       active = col >= bounds.colMin && col <= bounds.colMax;
     } else if (selectionKind !== 'row' && singleCell) {
-      active = col === focus.col;
+      active = col === activeCell.col;
     } else if (selectionKind === 'range' && !singleCell) {
       active = col >= bounds.colMin && col <= bounds.colMax;
     }
@@ -273,7 +288,7 @@ function updateHeaderHighlights() {
     if (selectionKind === 'row') {
       active = row >= bounds.rowMin && row <= bounds.rowMax;
     } else if (selectionKind !== 'column' && singleCell) {
-      active = row === focus.row;
+      active = row === activeCell.row;
     } else if (selectionKind === 'range' && !singleCell) {
       active = row >= bounds.rowMin && row <= bounds.rowMax;
     }
@@ -283,7 +298,7 @@ function updateHeaderHighlights() {
 }
 
 function updateCellSelection() {
-  const { row: focusRow, col: focusCol } = spreadsheet.focus;
+  const { row: focusRow, col: focusCol } = getActiveCell();
   const showRowColGuide =
     isSingleCellSelection() && spreadsheet.selectionKind === 'range';
 
@@ -366,10 +381,11 @@ function bindCellEvents(input, cell, row, col) {
       return;
     }
 
+    const activeCell = getActiveCell();
     const isSameActiveCell =
       isSingleCellSelection() &&
-      spreadsheet.focus.row === row &&
-      spreadsheet.focus.col === col &&
+      activeCell.row === row &&
+      activeCell.col === col &&
       spreadsheet.anchor.row === row &&
       spreadsheet.anchor.col === col;
 
