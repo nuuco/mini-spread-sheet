@@ -11,22 +11,16 @@
     <header class="toolbar">
       <div class="toolbar-row toolbar-row-title">
         <div class="sheet-title-wrap" id="sheet-title-wrap">
-          <button
-            type="button"
-            class="sheet-title-display"
-            id="sheet-title-display"
-            aria-label="시트 제목 편집"
-          >
-            <span class="sheet-title-text" id="sheet-title-text">제목없음</span>
-          </button>
-          <input
-            id="sheet-title"
-            class="sheet-title-input"
-            type="text"
-            maxlength="80"
-            autocomplete="off"
+          <div
+            id="sheet-title-field"
+            class="sheet-title-field"
+            contenteditable="false"
+            role="textbox"
             aria-label="시트 제목"
-          />
+            aria-multiline="false"
+            data-placeholder="제목없음"
+            spellcheck="false"
+          ></div>
         </div>
         <button id="export-btn" type="button" class="export-btn">Export Excel</button>
       </div>

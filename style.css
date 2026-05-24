@@ -45,78 +45,81 @@ body {
   min-width: 0;
 }
 
-.sheet-title-display {
-  display: inline-flex;
-  align-items: center;
+.sheet-title-field {
+  position: relative;
+  display: block;
   max-width: 100%;
   min-height: 40px;
   margin: 0;
-  padding: 6px 12px;
-  border: 1px solid transparent;
-  border-radius: 10px;
+  padding: 6px 4px 8px;
+  border: none;
+  border-radius: 0;
   background: transparent;
   font: inherit;
   font-size: 1.4rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: 1.2;
+  line-height: 1.25;
   color: #1a202c;
   cursor: text;
   text-align: left;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.sheet-title-text {
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  outline: none;
+  caret-color: #2b6cb0;
+  transition: color 0.15s ease;
 }
 
-.sheet-title-wrap.is-empty .sheet-title-display {
+.sheet-title-field::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #4a90d9, #63b3ed);
+  transform: scaleX(0);
+  transform-origin: left center;
+  opacity: 0;
+  transition:
+    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.18s ease;
+  pointer-events: none;
+}
+
+.sheet-title-wrap.is-editing .sheet-title-field::after {
+  transform: scaleX(1);
+  opacity: 1;
+}
+
+.sheet-title-wrap.is-empty:not(.is-editing) .sheet-title-field {
   color: #718096;
   font-weight: 600;
 }
 
-.sheet-title-display:hover {
-  background: rgba(255, 255, 255, 0.65);
-  border-color: rgba(184, 200, 216, 0.75);
+.sheet-title-field:empty::before {
+  content: attr(data-placeholder);
+  color: #718096;
+  font-weight: 600;
+  pointer-events: none;
 }
 
-.sheet-title-display:focus-visible {
-  outline: 2px solid #4a90d9;
-  outline-offset: 2px;
+.sheet-title-wrap:not(.is-editing) .sheet-title-field:hover {
+  color: #0f172a;
 }
 
-.sheet-title-input {
-  display: none;
-  width: 100%;
-  margin: 0;
-  padding: 8px 12px;
-  border: 1px solid #4a90d9;
-  border-radius: 10px;
-  background: #fff;
-  font: inherit;
-  font-size: 1.4rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  color: #1a202c;
-  box-shadow: 0 4px 14px rgba(74, 144, 217, 0.18);
+.sheet-title-wrap.is-editing .sheet-title-field {
+  overflow: visible;
+  text-overflow: clip;
+  color: #0f172a;
+  padding-bottom: 10px;
 }
 
-.sheet-title-input:focus {
-  outline: none;
-}
-
-.sheet-title-wrap.is-editing .sheet-title-display {
-  display: none;
-}
-
-.sheet-title-wrap.is-editing .sheet-title-input {
-  display: block;
+.sheet-title-wrap.is-editing .sheet-title-field:empty::before {
+  color: #a0aec0;
+  font-weight: 600;
 }
 
 .cell-coordinate {

@@ -919,38 +919,69 @@ function scheduleSaveToLocalStorage() {
   }, SAVE_DEBOUNCE_MS);
 }
 
-function getSheetTitleDisplayText(title) {
-  const trimmed = String(title ?? '').trim();
-  return trimmed || DEFAULT_SHEET_TITLE_LABEL;
+const SHEET_TITLE_MAX_LENGTH = 80;
+
+function getSheetTitleField() {
+  return document.getElementById('sheet-title-field');
+}
+
+function readSheetTitleFromField(field) {
+  return field.textContent.replace(/\r?\n/g, '').trim();
+}
+
+function placeCaretAtEnd(element) {
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  range.collapse(false);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function selectAllSheetTitleField(field) {
+  const range = document.createRange();
+  range.selectNodeContents(field);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function enforceSheetTitleFieldLength(field) {
+  const text = field.textContent.replace(/\r?\n/g, '');
+  if (text.length <= SHEET_TITLE_MAX_LENGTH) {
+    return text;
+  }
+
+  field.textContent = text.slice(0, SHEET_TITLE_MAX_LENGTH);
+  placeCaretAtEnd(field);
+  return field.textContent;
 }
 
 function updateSheetTitleDisplay() {
-  const displayText = document.getElementById('sheet-title-text');
+  const field = getSheetTitleField();
   const wrap = document.getElementById('sheet-title-wrap');
-  if (!displayText || !wrap) {
+  if (!field || !wrap || wrap.classList.contains('is-editing')) {
     return;
   }
 
-  displayText.textContent = getSheetTitleDisplayText(spreadsheet.title);
+  field.textContent = spreadsheet.title ?? '';
   wrap.classList.toggle('is-empty', !String(spreadsheet.title ?? '').trim());
 }
 
-function syncSpreadsheetTitleFromInput() {
+function syncSpreadsheetTitleFromField() {
   const wrap = document.getElementById('sheet-title-wrap');
-  if (!wrap?.classList.contains('is-editing')) {
+  const field = getSheetTitleField();
+  if (!wrap?.classList.contains('is-editing') || !field) {
     return;
   }
 
-  const titleInput = document.getElementById('sheet-title');
-  if (titleInput) {
-    spreadsheet.title = titleInput.value;
-  }
+  spreadsheet.title = enforceSheetTitleFieldLength(field);
 }
 
-function applySpreadsheetTitleToInput() {
-  const titleInput = document.getElementById('sheet-title');
-  if (titleInput) {
-    titleInput.value = spreadsheet.title ?? '';
+function applySpreadsheetTitleToField() {
+  const field = getSheetTitleField();
+  if (field) {
+    field.textContent = spreadsheet.title ?? '';
   }
 
   updateSheetTitleDisplay();
@@ -958,34 +989,47 @@ function applySpreadsheetTitleToInput() {
 
 function startSheetTitleEdit() {
   const wrap = document.getElementById('sheet-title-wrap');
-  const titleInput = document.getElementById('sheet-title');
-  if (!wrap || !titleInput) {
+  const field = getSheetTitleField();
+  if (!wrap || !field || wrap.classList.contains('is-editing')) {
     return;
   }
 
   sheetTitleEditSnapshot = spreadsheet.title ?? '';
-  titleInput.value = spreadsheet.title ?? '';
+  field.textContent = spreadsheet.title ?? '';
+  field.contentEditable = 'plaintext-only';
   wrap.classList.add('is-editing');
-  titleInput.focus();
-  titleInput.select();
+  wrap.classList.toggle('is-empty', !field.textContent.trim());
+  field.focus();
+
+  if (field.textContent.length) {
+    selectAllSheetTitleField(field);
+  } else {
+    placeCaretAtEnd(field);
+  }
 }
 
 function finishSheetTitleEdit(revert = false) {
   const wrap = document.getElementById('sheet-title-wrap');
-  const titleInput = document.getElementById('sheet-title');
-  if (!wrap || !titleInput || !wrap.classList.contains('is-editing')) {
+  const field = getSheetTitleField();
+  if (!wrap || !field || !wrap.classList.contains('is-editing')) {
     return;
   }
 
-  spreadsheet.title = revert ? sheetTitleEditSnapshot : titleInput.value;
-  titleInput.value = spreadsheet.title ?? '';
+  if (revert) {
+    spreadsheet.title = sheetTitleEditSnapshot;
+  } else {
+    spreadsheet.title = readSheetTitleFromField(field).slice(0, SHEET_TITLE_MAX_LENGTH);
+  }
+
+  field.contentEditable = 'false';
+  field.textContent = spreadsheet.title ?? '';
   wrap.classList.remove('is-editing');
   updateSheetTitleDisplay();
   saveToLocalStorage();
 }
 
 function saveToLocalStorage() {
-  syncSpreadsheetTitleFromInput();
+  syncSpreadsheetTitleFromField();
 
   const payload = {
     rows: spreadsheet.rows,
@@ -1643,26 +1687,41 @@ function bindKeyboardEvents() {
 function bindToolbarEvents() {
   document.getElementById('export-btn').addEventListener('click', exportSpreadsheet);
 
-  const titleDisplay = document.getElementById('sheet-title-display');
-  const titleInput = document.getElementById('sheet-title');
+  const titleField = getSheetTitleField();
+  const titleWrap = document.getElementById('sheet-title-wrap');
+  if (!titleField || !titleWrap) {
+    return;
+  }
 
-  titleDisplay.addEventListener('click', () => {
-    startSheetTitleEdit();
+  titleField.addEventListener('click', () => {
+    if (!titleWrap.classList.contains('is-editing')) {
+      startSheetTitleEdit();
+    }
   });
 
-  titleInput.addEventListener('input', (event) => {
-    spreadsheet.title = event.target.value;
+  titleField.addEventListener('input', () => {
+    spreadsheet.title = enforceSheetTitleFieldLength(titleField);
+    titleWrap.classList.toggle('is-empty', !titleField.textContent.trim());
     scheduleSaveToLocalStorage();
   });
 
-  titleInput.addEventListener('blur', () => {
+  titleField.addEventListener('paste', (event) => {
+    event.preventDefault();
+    const pasted = event.clipboardData
+      .getData('text/plain')
+      .replace(/\r?\n/g, ' ')
+      .slice(0, SHEET_TITLE_MAX_LENGTH);
+    document.execCommand('insertText', false, pasted);
+  });
+
+  titleField.addEventListener('blur', () => {
     finishSheetTitleEdit();
   });
 
-  titleInput.addEventListener('keydown', (event) => {
+  titleField.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
-      titleInput.blur();
+      titleField.blur();
       return;
     }
 
@@ -1675,7 +1734,7 @@ function bindToolbarEvents() {
 
 function initSpreadsheet() {
   loadFromLocalStorage();
-  applySpreadsheetTitleToInput();
+  applySpreadsheetTitleToField();
   renderGrid();
   bindToolbarEvents();
   bindKeyboardEvents();

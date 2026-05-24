@@ -18,3 +18,4 @@
 - Export 제목 정규화: 금지문자 제거, 공백→`_`, 연속·앞뒤 `_` 정리
 - 요구사항 문서: 플랜 기준 docs/PRD.md, SRD.md, TRD.md 작성
 - 요구사항 문서 최신화: 현재 구현 기준 PRD/SRD/TRD/README 동기화 (xlsx, 선택·undo·붙여넣기·시트제목)
+- 시트 제목 편집 UI: contenteditable 인라인 편집, 밑줄·커서만 강조 (input 박스 제거)
