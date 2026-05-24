@@ -399,3 +399,33 @@ PRD, SRD, TRD가 뭔지 설명해 주고, 플랜 문서 기준으로 docs에 각
 > 의도/반영: 원인 — `contenteditable` 전체 삭제 시 브라우저가 커서용 `<br>`을 남겨 `:empty`가 깨지고 줄 높이가 2줄처럼 잡힘. `clearSheetTitleFieldIfEmpty()`로 실질 빈 값이면 `textContent = ''` 정규화, 편집 중 `overflow: hidden` 유지.
 
 ---
+
+- 프롬프트:
+
+```
+README에 내가 추가한 기능 상세하게 잘 적혀있는지 확인해줘. (행, 열 선택, 여러개 드래그 선택, 행열 추가 제거, 실행취소 다시실행 등)
+```
+
+> 의도/반영: README에 `## 기능 상세` 섹션 추가 — 1클릭/2클릭 편집, 드래그·Shift 선택, 행·열·전체 시트, 컨텍스트 메뉴 일괄 추가·삭제, undo 대상, 붙여넣기 형식 등 표로 정리.
+
+---
+
+- 프롬프트:
+
+```
+js 코드를 객체지향 방식으로 리팩토링해보자. 모듈화도 필요하면 하고, 불필요 코드 정리하고, 전체 검수해줘.
+```
+
+> 의도/반영: 단일 `app.js`(약 1,700줄)를 ES modules + 클래스로 분리. `SpreadsheetModel`(데이터·선택·행열), `UndoStack`, `StorageService`, `clipboard` 파서, `GridRenderer`·`SheetTitleEditor`·`ContextMenu`, `SpreadsheetApp`(조율), `main.js` 진입점. 미사용 `insertRowAt`/`insertColumnAt` 제거. `index.html` → `<script type="module" src="js/main.js">`. README·TRD·AGENTS 구조 갱신.
+
+---
+
+- 프롬프트:
+
+```
+이렇게 모듈화 하면 파일로는 안 뜨나??
+```
+
+> 의도/반영: ES modules는 `file://`에서 CORS로 `import`가 막히는 경우가 많음. 실행은 `npx serve .` 등 로컬 서버 권장. `file://` 필수 시 단일 `app.js` 복구 또는 번들(Vite/Rollup) 필요 — README에 안내.
+
+---

@@ -115,7 +115,7 @@ JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 
 
 ## 그리드 크기 변경
 
-[`app.js`](app.js) 상단 `CONFIG`로 **초기** 크기를 설정합니다.
+[`js/constants.js`](js/constants.js)의 `CONFIG`로 **초기** 크기를 설정합니다.
 
 ```javascript
 const CONFIG = {
@@ -153,30 +153,40 @@ const CONFIG = {
 ```
 ├── index.html
 ├── style.css
-├── app.js
+├── js/
+│   ├── main.js                 # 진입점
+│   ├── SpreadsheetApp.js       # 앱 조율 (선택·키보드·undo·붙여넣기)
+│   ├── constants.js
+│   ├── models/
+│   │   ├── SpreadsheetModel.js # 데이터·선택·행열 연산
+│   │   └── UndoStack.js
+│   ├── services/
+│   │   ├── StorageService.js
+│   │   └── clipboard.js
+│   ├── ui/
+│   │   ├── GridRenderer.js
+│   │   ├── SheetTitleEditor.js
+│   │   └── ContextMenu.js
+│   └── utils/
+│       ├── cellAddress.js
+│       ├── keyboard.js
+│       └── exportTitle.js
 ├── README.md
 ├── AGENTS.md
 ├── docs/
-│   ├── PRD.md · SRD.md · TRD.md
-│   ├── PROMPT_LOG.md
-│   └── screenshots/
 └── exports/
 ```
 
-## app.js 주요 함수
+## 코드 구조 (클래스·역할)
 
-| 함수 | 역할 |
+| 모듈 | 역할 |
 |------|------|
-| `initSpreadsheet()` | 초기화·이벤트 바인딩 |
-| `renderGrid()` | 그리드 DOM 생성 |
-| `beginDragSelection()` / `updateDragSelection()` | 드래그 선택 |
-| `getSelectionBounds()` / `updateSelectionUI()` | 범위·좌표·헤더·하이라이트 |
-| `enterEditMode()` / `clearSelectedCellContent()` | 편집·삭제 |
-| `collectSpreadsheetData()` / `exportSpreadsheet()` | 데이터·Export |
-| `undoSpreadsheet()` / `redoSpreadsheet()` | 실행 취소·다시 실행 |
-| `copySelectionToClipboard()` / `pasteFromClipboard()` | 클립보드 |
-| `insertRowsAt()` / `deleteSelectedRows()` 등 | 행·열 조작 |
-| `showContextMenu()` | 행·열 헤더 메뉴 |
+| `SpreadsheetApp` | 초기화, UI 동기화, 드래그·키보드, undo/redo, Export |
+| `SpreadsheetModel` | `data`·선택 상태, 행열 변경, 붙여넣기·범위 계산 |
+| `GridRenderer` | 그리드 DOM 생성·셀 이벤트 |
+| `UndoStack` | 실행 취소 스택 |
+| `SheetTitleEditor` | 제목 contenteditable 편집 |
+| `ContextMenu` | 행·열 헤더 오른클릭 메뉴 |
 
 ## 제출 전 체크리스트
 

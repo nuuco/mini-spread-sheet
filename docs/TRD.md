@@ -18,7 +18,8 @@
 | 프론트엔드 | HTML5, CSS3, ECMAScript (Vanilla) |
 | Export | [SheetJS](https://cdn.sheetjs.com/) `xlsx-0.20.3` (CDN) |
 | 상태 | 인메모리 `spreadsheet` + `localStorage` |
-| 빌드 | 없음 |
+| 빌드 | 없음 (네이티브 ES modules) |
+| 모듈 | `js/` — 클래스·역할별 파일 분리 |
 
 ---
 
@@ -60,7 +61,7 @@ flowchart LR
 |------|------|
 | `index.html` | 툴바, 그리드 마운트, 컨텍스트 메뉴, SheetJS·`app.js` 로드 |
 | `style.css` | 그리드·선택·헤더·툴바·메뉴 스타일 |
-| `app.js` | 전역 상태, 렌더, 이벤트, Export, persistence, history |
+| `js/*` | ES modules — `SpreadsheetApp` 조율, `SpreadsheetModel` 상태, UI·services |
 
 ---
 
@@ -70,16 +71,15 @@ flowchart LR
 mini-spread-sheet/
 ├── index.html
 ├── style.css
-├── app.js
+├── js/
+│   ├── main.js
+│   ├── SpreadsheetApp.js
+│   ├── constants.js
+│   ├── models/ · services/ · ui/ · utils/
 ├── README.md
 ├── AGENTS.md
 ├── docs/
-│   ├── PRD.md
-│   ├── SRD.md
-│   ├── TRD.md
-│   ├── PROMPT_LOG.md
-│   └── screenshots/
-└── exports/          # 수동 Export 샘플
+└── exports/
 ```
 
 ---
@@ -128,7 +128,7 @@ let spreadsheet = {
 | 본문 | `#spreadsheet` | `<table class="grid-table">` |
 | 플로팅 | `#context-menu` | 행·열 헤더용 |
 
-스크립트 순서: SheetJS CDN → `app.js` defer.
+스크립트: SheetJS CDN → `<script type="module" src="js/main.js">`.
 
 ---
 
