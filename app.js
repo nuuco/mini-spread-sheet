@@ -5,6 +5,9 @@ const CONFIG = {
 
 const STORAGE_KEY = 'mini-spreadsheet-data';
 const SAVE_DEBOUNCE_MS = 300;
+const DEFAULT_SHEET_TITLE_LABEL = '제목없음';
+
+let sheetTitleEditSnapshot = '';
 
 let spreadsheet = {
   rows: CONFIG.defaultRows,
@@ -916,7 +919,28 @@ function scheduleSaveToLocalStorage() {
   }, SAVE_DEBOUNCE_MS);
 }
 
+function getSheetTitleDisplayText(title) {
+  const trimmed = String(title ?? '').trim();
+  return trimmed || DEFAULT_SHEET_TITLE_LABEL;
+}
+
+function updateSheetTitleDisplay() {
+  const displayText = document.getElementById('sheet-title-text');
+  const wrap = document.getElementById('sheet-title-wrap');
+  if (!displayText || !wrap) {
+    return;
+  }
+
+  displayText.textContent = getSheetTitleDisplayText(spreadsheet.title);
+  wrap.classList.toggle('is-empty', !String(spreadsheet.title ?? '').trim());
+}
+
 function syncSpreadsheetTitleFromInput() {
+  const wrap = document.getElementById('sheet-title-wrap');
+  if (!wrap?.classList.contains('is-editing')) {
+    return;
+  }
+
   const titleInput = document.getElementById('sheet-title');
   if (titleInput) {
     spreadsheet.title = titleInput.value;
@@ -928,6 +952,36 @@ function applySpreadsheetTitleToInput() {
   if (titleInput) {
     titleInput.value = spreadsheet.title ?? '';
   }
+
+  updateSheetTitleDisplay();
+}
+
+function startSheetTitleEdit() {
+  const wrap = document.getElementById('sheet-title-wrap');
+  const titleInput = document.getElementById('sheet-title');
+  if (!wrap || !titleInput) {
+    return;
+  }
+
+  sheetTitleEditSnapshot = spreadsheet.title ?? '';
+  titleInput.value = spreadsheet.title ?? '';
+  wrap.classList.add('is-editing');
+  titleInput.focus();
+  titleInput.select();
+}
+
+function finishSheetTitleEdit(revert = false) {
+  const wrap = document.getElementById('sheet-title-wrap');
+  const titleInput = document.getElementById('sheet-title');
+  if (!wrap || !titleInput || !wrap.classList.contains('is-editing')) {
+    return;
+  }
+
+  spreadsheet.title = revert ? sheetTitleEditSnapshot : titleInput.value;
+  titleInput.value = spreadsheet.title ?? '';
+  wrap.classList.remove('is-editing');
+  updateSheetTitleDisplay();
+  saveToLocalStorage();
 }
 
 function saveToLocalStorage() {
@@ -1197,39 +1251,17 @@ function sanitizeWorksheetName(title) {
   return cleaned || 'Sheet1';
 }
 
-function buildExcelRowXml(row, options = {}) {
-  const { mergeAcross = 0, styleId } = options;
-  const mergeAttr = mergeAcross > 0 ? ` ss:MergeAcross="${mergeAcross}"` : '';
-  const styleAttr = styleId ? ` ss:StyleID="${styleId}"` : '';
-  const value = row[0] ?? '';
-
-  if (mergeAcross > 0) {
-    return `<Row><Cell${mergeAttr}${styleAttr}><Data ss:Type="String">${escapeXml(value)}</Data></Cell></Row>`;
-  }
-
+function buildExcelRowXml(row) {
   const cells = row
-    .map((cell) => `<Cell${styleAttr}><Data ss:Type="String">${escapeXml(cell)}</Data></Cell>`)
+    .map((cell) => `<Cell><Data ss:Type="String">${escapeXml(cell)}</Data></Cell>`)
     .join('');
 
   return `<Row>${cells}</Row>`;
 }
 
 function buildExcelXmlContent(data, title) {
-  const trimmedTitle = String(title ?? '').trim();
-  const sheetName = sanitizeWorksheetName(trimmedTitle);
-  const rowXmlParts = [];
-
-  if (trimmedTitle) {
-    const mergeAcross = Math.max(0, spreadsheet.cols - 1);
-    rowXmlParts.push(buildExcelRowXml([trimmedTitle], { mergeAcross, styleId: 'Title' }));
-    rowXmlParts.push(buildExcelRowXml(['']));
-  }
-
-  data.forEach((row) => {
-    rowXmlParts.push(buildExcelRowXml(row));
-  });
-
-  const rows = rowXmlParts.join('');
+  const sheetName = sanitizeWorksheetName(String(title ?? '').trim());
+  const rows = data.map((row) => buildExcelRowXml(row)).join('');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <?mso-application progid="Excel.Sheet"?>
@@ -1237,11 +1269,6 @@ function buildExcelXmlContent(data, title) {
  xmlns:o="urn:schemas-microsoft-com:office:office"
  xmlns:x="urn:schemas-microsoft-com:office:excel"
  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
- <Styles>
-  <Style ss:ID="Title">
-   <Font ss:Bold="1" ss:Size="14"/>
-  </Style>
- </Styles>
  <Worksheet ss:Name="${escapeXml(sheetName)}">
   <Table>${rows}</Table>
  </Worksheet>
@@ -1259,7 +1286,7 @@ function downloadFile(filename, content, mimeType) {
 }
 
 function exportSpreadsheet() {
-  syncSpreadsheetTitleFromInput();
+  finishSheetTitleEdit();
   const title = spreadsheet.title.trim();
   const data = collectSpreadsheetData();
   const excelContent = buildExcelXmlContent(data, title);
@@ -1647,10 +1674,33 @@ function bindKeyboardEvents() {
 function bindToolbarEvents() {
   document.getElementById('export-btn').addEventListener('click', exportSpreadsheet);
 
+  const titleDisplay = document.getElementById('sheet-title-display');
   const titleInput = document.getElementById('sheet-title');
+
+  titleDisplay.addEventListener('click', () => {
+    startSheetTitleEdit();
+  });
+
   titleInput.addEventListener('input', (event) => {
     spreadsheet.title = event.target.value;
     scheduleSaveToLocalStorage();
+  });
+
+  titleInput.addEventListener('blur', () => {
+    finishSheetTitleEdit();
+  });
+
+  titleInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      titleInput.blur();
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      finishSheetTitleEdit(true);
+    }
   });
 }
 

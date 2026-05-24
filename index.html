@@ -9,19 +9,29 @@
 <body>
   <main class="app">
     <header class="toolbar">
-      <div class="toolbar-left">
-        <label class="sheet-title-field" for="sheet-title">
-          <span class="sheet-title-label">제목</span>
+      <div class="toolbar-body">
+        <div class="sheet-title-wrap" id="sheet-title-wrap">
+          <button
+            type="button"
+            class="sheet-title-display"
+            id="sheet-title-display"
+            aria-label="시트 제목 편집"
+          >
+            <span class="sheet-title-text" id="sheet-title-text">제목없음</span>
+          </button>
           <input
             id="sheet-title"
             class="sheet-title-input"
             type="text"
-            placeholder="시트 제목"
             maxlength="80"
             autocomplete="off"
+            aria-label="시트 제목"
           />
-        </label>
-        <span id="cell-coordinate" class="cell-coordinate">Cell: A1</span>
+        </div>
+        <div class="toolbar-meta">
+          <span id="cell-coordinate" class="cell-coordinate">Cell: A1</span>
+          <span id="grid-size-label" class="grid-size-label">5행 × 5열</span>
+        </div>
       </div>
       <button id="export-btn" type="button" class="export-btn">Export Excel</button>
     </header>
@@ -29,10 +39,6 @@
     <section class="grid-wrapper">
       <div id="spreadsheet" class="spreadsheet" aria-label="스프레드시트 그리드"></div>
     </section>
-
-    <footer class="grid-info">
-      <span id="grid-size-label">5행 × 5열</span>
-    </footer>
   </main>
 
   <menu id="context-menu" class="context-menu hidden" type="context"></menu>

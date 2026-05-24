@@ -22,52 +22,118 @@ body {
 
 .toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 16px;
 }
 
-.toolbar-left {
+.toolbar-body {
   display: flex;
-  align-items: center;
-  gap: 20px;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
   flex: 1;
 }
 
-.sheet-title-field {
+.toolbar-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 12px;
 }
 
-.sheet-title-label {
-  font-size: 0.9rem;
+.sheet-title-wrap {
+  position: relative;
+  width: 100%;
+  max-width: min(640px, 100%);
+}
+
+.sheet-title-display {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 40px;
+  margin: 0;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: #1a202c;
+  cursor: text;
+  text-align: left;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.sheet-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sheet-title-wrap.is-empty .sheet-title-display {
+  color: #718096;
   font-weight: 600;
-  color: #2d3748;
-  flex-shrink: 0;
+}
+
+.sheet-title-display:hover {
+  background: rgba(255, 255, 255, 0.65);
+  border-color: rgba(184, 200, 216, 0.75);
+}
+
+.sheet-title-display:focus-visible {
+  outline: 2px solid #4a90d9;
+  outline-offset: 2px;
 }
 
 .sheet-title-input {
-  width: min(280px, 100%);
-  padding: 8px 10px;
-  border: 1px solid #b8c8d8;
-  border-radius: 6px;
+  display: none;
+  width: 100%;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid #4a90d9;
+  border-radius: 10px;
   background: #fff;
   font: inherit;
-  font-size: 0.95rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: #1a202c;
+  box-shadow: 0 4px 14px rgba(74, 144, 217, 0.18);
 }
 
 .sheet-title-input:focus {
-  outline: 2px solid #4a90d9;
-  outline-offset: 1px;
+  outline: none;
 }
 
-.cell-coordinate {
-  font-size: 1.1rem;
-  font-weight: 600;
+.sheet-title-wrap.is-editing .sheet-title-display {
+  display: none;
+}
+
+.sheet-title-wrap.is-editing .sheet-title-input {
+  display: block;
+}
+
+.cell-coordinate,
+.grid-size-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4a5568;
+  white-space: nowrap;
+}
+
+.grid-size-label {
+  flex-shrink: 0;
 }
 
 .export-btn {
@@ -235,12 +301,6 @@ body.is-dragging {
 body.is-dragging .row-header,
 body.is-dragging .col-header {
   cursor: pointer;
-}
-
-.grid-info {
-  margin-top: 12px;
-  font-size: 0.9rem;
-  color: #4a5568;
 }
 
 .context-menu {
