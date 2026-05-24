@@ -4,7 +4,7 @@ import {
   getArrowDelta,
   getRedoShortcutLabel,
   getUndoShortcutLabel,
-  isCellInputEvent,
+  isEditingCellInputEvent,
   isComposingInput,
   isCopyShortcut,
   isGridKeyboardTarget,
@@ -148,10 +148,7 @@ export class SpreadsheetApp {
       if (!isGridKeyboardTarget(event)) {
         return;
       }
-      if (isComposingInput(event)) {
-        return;
-      }
-      if (isCellInputEvent(event)) {
+      if (isEditingCellInputEvent(event)) {
         return;
       }
 
@@ -208,10 +205,10 @@ export class SpreadsheetApp {
         this.enterEditMode(row, col);
         return;
       }
-      if (!isTypingKey(event)) {
+      if (!this.model.hasSelection()) {
         return;
       }
-      if (!this.model.hasSelection()) {
+      if (!isTypingKey(event)) {
         return;
       }
       event.preventDefault();
@@ -325,6 +322,32 @@ export class SpreadsheetApp {
     this.updateCellSelection();
     this.syncInputEditState();
     this.updateGridSizeLabel();
+    this.focusSelectedCellInput();
+  }
+
+  focusSelectedCellInput() {
+    if (this.titleEditor.isEditing()) {
+      return;
+    }
+    const active = document.activeElement;
+    if (
+      active?.closest('.toolbar') ||
+      active?.closest('#sheet-title-wrap') ||
+      active?.closest('#help-guide-modal')
+    ) {
+      return;
+    }
+    if (!this.model.hasSelection()) {
+      return;
+    }
+    if (this.model.mode === 'edit' && !this.model.isSingleCellSelection()) {
+      return;
+    }
+    if (this.model.mode === 'select' && !this.model.isSingleCellSelection()) {
+      return;
+    }
+    const { row, col } = this.model.getActiveCell();
+    this.grid.getCellInput(row, col)?.focus({ preventScroll: true });
   }
 
   updateGridSizeLabel() {
@@ -442,6 +465,8 @@ export class SpreadsheetApp {
 
     const { row, col } = this.model.getActiveCell();
     const isEditing = this.model.mode === 'edit' && this.model.isSingleCellSelection();
+    const isSingleCellSelect =
+      this.model.mode === 'select' && this.model.isSingleCellSelection();
 
     document.querySelectorAll('.cell').forEach((cell) => {
       const cellRow = Number(cell.dataset.row);
@@ -451,16 +476,22 @@ export class SpreadsheetApp {
         cellRow === row &&
         cellCol === col &&
         this.model.isCellInSelection(cellRow, cellCol);
+      const isActiveCell =
+        isSingleCellSelect &&
+        cellRow === row &&
+        cellCol === col &&
+        this.model.isCellInSelection(cellRow, cellCol);
 
       cell.classList.toggle('editing', editing);
       const input = cell.querySelector('.cell-input');
       if (!input) {
         return;
       }
-      input.readOnly = !editing;
-      GridRenderer.updateCellInputLayout(input);
+      input.readOnly = !editing && !isActiveCell;
       if (editing) {
-        GridRenderer.layoutEditingInput(input, cell);
+        if (!GridRenderer.isInputComposing(input)) {
+          GridRenderer.updateCellInputLayout(input);
+        }
       } else {
         GridRenderer.collapseInputSelection(input);
         GridRenderer.resetEditingInputLayout(input);
@@ -576,7 +607,7 @@ export class SpreadsheetApp {
 
     const { moved, kind, wasActiveBeforeDown, pointerDownOn } = this.drag;
     if (!moved && kind === 'cell' && wasActiveBeforeDown) {
-      this.enterEditMode(pointerDownOn.row, pointerDownOn.col);
+      this.enterEditMode(pointerDownOn.row, pointerDownOn.col, { selectAll: true });
     }
 
     this.drag.active = false;
@@ -607,7 +638,7 @@ export class SpreadsheetApp {
     }
   }
 
-  enterEditMode(row, col) {
+  enterEditMode(row, col, { selectAll = false } = {}) {
     if (!this.model.isCellInSelection(row, col)) {
       return;
     }
@@ -622,10 +653,52 @@ export class SpreadsheetApp {
     const input = this.grid.getCellInput(row, col);
     const cell = input?.closest('.cell');
     input?.focus();
-    input?.select();
-    if (input && cell) {
-      GridRenderer.layoutEditingInput(input, cell);
+    if (selectAll && input?.value) {
+      input.select();
     }
+    if (input && cell && selectAll) {
+      requestAnimationFrame(() => {
+        if (!GridRenderer.isInputComposing(input)) {
+          GridRenderer.layoutEditingInput(input, cell);
+        }
+      });
+    }
+  }
+
+  /**
+   * 선택 모드에서 활성 셀에 입력이 들어오기 직전 편집 전환·덮어쓰기.
+   * beforeinput에서 호출(IME 조합 전). select()·전체 refresh는 하지 않음.
+   */
+  prepareCellEditFromInput(row, col, { expectComposition = false } = {}) {
+    if (this.model.mode === 'edit' || !this.model.isCellInSelection(row, col)) {
+      return;
+    }
+
+    this.pushUndoSnapshot();
+    this.editUndoRecorded = true;
+    this.model.mode = 'edit';
+    this.model.anchor = { row, col };
+    this.model.focus = { row, col };
+    this.model.selectionKind = 'range';
+
+    const input = this.grid.getCellInput(row, col);
+    if (!input) {
+      return;
+    }
+
+    if (input.value) {
+      input.value = '';
+      this.model.data[row][col] = '';
+    }
+
+    if (expectComposition) {
+      input.dataset.imeComposing = 'true';
+    }
+    input.readOnly = false;
+    input.closest('.cell')?.classList.add('editing');
+    input.setSelectionRange(0, 0);
+
+    queueMicrotask(() => this.refreshSelectionUI());
   }
 
   startTypingInActiveCell(char) {
@@ -649,7 +722,7 @@ export class SpreadsheetApp {
     input?.setSelectionRange(char.length, char.length);
     if (input) {
       const cell = input.closest('.cell');
-      if (cell) {
+      if (cell && !GridRenderer.isInputComposing(input)) {
         GridRenderer.layoutEditingInput(input, cell);
       }
     }

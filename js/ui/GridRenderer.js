@@ -1,5 +1,10 @@
 import { columnIndexToLabel, formatCellAddress } from '../utils/cellAddress.js';
-import { isComposingInput, isNewlineShortcut } from '../utils/keyboard.js';
+import {
+  isCellInsertBeforeInput,
+  isComposingInput,
+  isNewlineShortcut,
+  shouldRouteToImeInput,
+} from '../utils/keyboard.js';
 import {
   EDITING_INPUT_EXPAND_PADDING,
   EDITING_INPUT_MAX_HEIGHT,
@@ -39,7 +44,7 @@ export class GridRenderer {
   }
 
   static isInputComposing(input, event) {
-    return event?.isComposing === true || input.dataset.imeComposing === 'true';
+    return input.dataset.imeComposing === 'true' || event?.isComposing === true;
   }
 
   static measureTextWidth(input, text) {
@@ -95,6 +100,10 @@ export class GridRenderer {
   }
 
   static layoutEditingInput(input, cell) {
+    if (GridRenderer.isInputComposing(input)) {
+      return;
+    }
+
     const cellRect = cell.getBoundingClientRect();
     const spaceToRight = window.innerWidth - cellRect.left - 24;
     const value = input.value ?? '';
@@ -148,6 +157,33 @@ export class GridRenderer {
   bindCellEvents(input, cell, row, col) {
     const { app } = this;
 
+    input.addEventListener('beforeinput', (event) => {
+      if (app.model.mode !== 'select') {
+        return;
+      }
+      if (!isCellInsertBeforeInput(event)) {
+        return;
+      }
+      const expectComposition =
+        event.isComposing === true ||
+        event.inputType === 'insertCompositionText' ||
+        event.inputType === 'insertFromComposition';
+      app.prepareCellEditFromInput(row, col, { expectComposition });
+    });
+
+    input.addEventListener(
+      'keydown',
+      (event) => {
+        if (app.model.mode !== 'select') {
+          return;
+        }
+        if (shouldRouteToImeInput(event)) {
+          app.prepareCellEditFromInput(row, col, { expectComposition: true });
+        }
+      },
+      true,
+    );
+
     const syncEditingInput = (target, event) => {
       if (GridRenderer.isInputComposing(target, event)) {
         return;
@@ -159,13 +195,22 @@ export class GridRenderer {
       }
     };
 
-    input.addEventListener('compositionstart', () => {
+    const markImeComposing = () => {
       input.dataset.imeComposing = 'true';
-    });
+    };
+
+    const clearImeComposing = (target, event) => {
+      delete input.dataset.imeComposing;
+      requestAnimationFrame(() => {
+        syncEditingInput(target, event);
+      });
+    };
+
+    input.addEventListener('compositionstart', markImeComposing);
+    input.addEventListener('compositionupdate', markImeComposing);
 
     input.addEventListener('compositionend', (event) => {
-      delete input.dataset.imeComposing;
-      syncEditingInput(event.target, event);
+      clearImeComposing(event.target, event);
     });
 
     input.addEventListener('input', (event) => {
@@ -183,18 +228,19 @@ export class GridRenderer {
       if (event.key !== 'Enter') {
         return;
       }
-      if (isComposingInput(event)) {
+      if (isComposingInput(event) || GridRenderer.isInputComposing(event.target, event)) {
         return;
       }
       if (isNewlineShortcut(event)) {
         event.preventDefault();
         event.stopPropagation();
         GridRenderer.insertNewlineAtCursor(event.target);
-        syncEditingInput(event.target);
+        syncEditingInput(event.target, event);
         return;
       }
       event.preventDefault();
       event.stopPropagation();
+      syncEditingInput(event.target, event);
       app.finishEditAndMoveDown(row, col);
     });
 

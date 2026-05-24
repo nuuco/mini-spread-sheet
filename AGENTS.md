@@ -42,5 +42,4 @@
 - 가이드 레이아웃: 좌 제목·우 설명 2열, 설명 핵심어 굵게,「전체 시트 선택」명칭
 - 실행 취소·다시 실행 툴바 버튼: 아이콘+단축키 표기(⌘Z/Ctrl+Z), 호버 title, disabled 연동
 - 행×열 표시: 툴바 → 시트 패널 하단 우측 오버레이(`sheet-panel`)
-- 한글 IME+Enter 버그 수정: 조합 중 Enter 무시·셀 Enter `stopPropagation`·document 핸들러 셀 input 제외
-- 한글 IME 조합 깨짐 수정: 조합 중 `layoutEditingInput`·모델 동기화 건너뜀, `compositionend` 후 처리
+- 한글 IME: 조합 중 Enter·layout 스킵, 활성 셀 readOnly 해제, `prepareCellEditFromInput`(beforeinput·clear·첫 자모 조합)

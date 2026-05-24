@@ -448,6 +448,10 @@ body {
   pointer-events: none;
 }
 
+.cell-input[readonly]:focus {
+  pointer-events: auto;
+}
+
 .cell.editing {
   position: relative;
   z-index: 20;

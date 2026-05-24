@@ -44,11 +44,41 @@ export function isNewlineShortcut(event) {
 }
 
 export function isComposingInput(event) {
-  return event.isComposing || event.keyCode === 229;
+  if (!event) {
+    return false;
+  }
+  return event.isComposing === true || event.keyCode === 229 || event.key === 'Process';
+}
+
+/** 선택 모드에서 IME 조합이 필요한 입력인지 (완성 음절 한 글자는 startTyping으로 처리) */
+export function shouldRouteToImeInput(event) {
+  if (isComposingInput(event)) {
+    return true;
+  }
+  if (event.key.length !== 1) {
+    return false;
+  }
+  if (/[\uAC00-\uD7A3]/.test(event.key)) {
+    return false;
+  }
+  return /[\u1100-\u11FF\u3130-\u318F]/.test(event.key);
 }
 
 export function isCellInputEvent(event) {
   return Boolean(event.target.closest('.cell-input'));
+}
+
+/** 편집 중인 셀 textarea로 키가 들어온 경우 */
+export function isEditingCellInputEvent(event) {
+  return Boolean(event.target.closest('.cell.editing .cell-input'));
+}
+
+export function isCellInsertBeforeInput(event) {
+  const { inputType } = event;
+  if (!inputType) {
+    return Boolean(event.data);
+  }
+  return inputType.startsWith('insert');
 }
 
 export function isMacLikePlatform() {
