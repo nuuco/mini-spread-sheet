@@ -26,6 +26,23 @@ const dragSelection = {
   wasActiveBeforeDown: false,
 };
 
+const contextMenuState = {
+  type: null,
+  index: null,
+};
+
+const ROW_CONTEXT_MENU = [
+  { action: 'row-below', label: '아래에 행 추가' },
+  { action: 'row-above', label: '위에 행 추가' },
+  { action: 'row-delete', label: '행 삭제', danger: true },
+];
+
+const COL_CONTEXT_MENU = [
+  { action: 'col-below', label: '아래에 열 추가' },
+  { action: 'col-above', label: '위에 열 추가' },
+  { action: 'col-delete', label: '열 삭제', danger: true },
+];
+
 function createEmptyData(rows, cols) {
   return Array.from({ length: rows }, () => Array(cols).fill(''));
 }
@@ -125,6 +142,14 @@ function updateSelectionUI() {
   updateHeaderHighlights();
   updateCellSelection();
   syncInputEditState();
+  updateGridSizeLabel();
+}
+
+function updateGridSizeLabel() {
+  const label = document.getElementById('grid-size-label');
+  if (label) {
+    label.textContent = `${spreadsheet.rows}행 × ${spreadsheet.cols}열`;
+  }
 }
 
 function syncInputEditState() {
@@ -495,6 +520,13 @@ function bindRowHeaderEvents(rowHeader, row) {
     event.preventDefault();
     beginDragSelection('row', row, 0, event.shiftKey);
   });
+
+  rowHeader.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    beginDragSelection('row', row, 0, false);
+    endDragSelection();
+    showContextMenu('row', row, event.clientX, event.clientY);
+  });
 }
 
 function bindColHeaderEvents(colHeader, col) {
@@ -505,6 +537,13 @@ function bindColHeaderEvents(colHeader, col) {
 
     event.preventDefault();
     beginDragSelection('column', 0, col, event.shiftKey);
+  });
+
+  colHeader.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    beginDragSelection('column', 0, col, false);
+    endDragSelection();
+    showContextMenu('column', col, event.clientX, event.clientY);
   });
 }
 
@@ -597,42 +636,130 @@ function exportSpreadsheet() {
   downloadCsv('spreadsheet.csv', csvContent);
 }
 
-function addRow() {
-  spreadsheet.data.push(Array(spreadsheet.cols).fill(''));
+function insertRowAt(index) {
+  spreadsheet.data.splice(index, 0, Array(spreadsheet.cols).fill(''));
   spreadsheet.rows += 1;
+  clampSelection();
   renderGrid();
   saveToLocalStorage();
 }
 
-function removeRow() {
+function deleteRowAt(index) {
   if (spreadsheet.rows <= 1) {
     return;
   }
 
-  spreadsheet.data.pop();
+  spreadsheet.data.splice(index, 1);
   spreadsheet.rows -= 1;
   clampSelection();
   renderGrid();
   saveToLocalStorage();
 }
 
-function addColumn() {
-  spreadsheet.data.forEach((row) => row.push(''));
+function insertColumnAt(index) {
+  spreadsheet.data.forEach((row) => row.splice(index, 0, ''));
   spreadsheet.cols += 1;
+  clampSelection();
   renderGrid();
   saveToLocalStorage();
 }
 
-function removeColumn() {
+function deleteColumnAt(index) {
   if (spreadsheet.cols <= 1) {
     return;
   }
 
-  spreadsheet.data.forEach((row) => row.pop());
+  spreadsheet.data.forEach((row) => row.splice(index, 1));
   spreadsheet.cols -= 1;
   clampSelection();
   renderGrid();
   saveToLocalStorage();
+}
+
+function hideContextMenu() {
+  const menu = document.getElementById('context-menu');
+  menu.classList.add('hidden');
+  contextMenuState.type = null;
+  contextMenuState.index = null;
+}
+
+function showContextMenu(type, index, x, y) {
+  const menu = document.getElementById('context-menu');
+  const items = type === 'row' ? ROW_CONTEXT_MENU : COL_CONTEXT_MENU;
+
+  menu.replaceChildren(
+    ...items.map((item) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = item.label;
+      button.dataset.action = item.action;
+      if (item.danger) {
+        button.classList.add('danger');
+      }
+      return button;
+    }),
+  );
+
+  contextMenuState.type = type;
+  contextMenuState.index = index;
+
+  menu.classList.remove('hidden');
+  menu.style.left = `${x}px`;
+  menu.style.top = `${y}px`;
+}
+
+function handleContextMenuAction(action) {
+  const { type, index } = contextMenuState;
+  hideContextMenu();
+
+  if (type === 'row') {
+    if (action === 'row-below') {
+      insertRowAt(index + 1);
+    } else if (action === 'row-above') {
+      insertRowAt(index);
+    } else if (action === 'row-delete') {
+      deleteRowAt(index);
+    }
+    return;
+  }
+
+  if (type === 'column') {
+    if (action === 'col-below') {
+      insertColumnAt(index + 1);
+    } else if (action === 'col-above') {
+      insertColumnAt(index);
+    } else if (action === 'col-delete') {
+      deleteColumnAt(index);
+    }
+  }
+}
+
+function bindContextMenuEvents() {
+  const menu = document.getElementById('context-menu');
+
+  menu.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-action]');
+    if (!button) {
+      return;
+    }
+
+    handleContextMenuAction(button.dataset.action);
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('#context-menu')) {
+      hideContextMenu();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      hideContextMenu();
+    }
+  });
+
+  window.addEventListener('scroll', hideContextMenu, true);
+  window.addEventListener('resize', hideContextMenu);
 }
 
 function bindKeyboardEvents() {
@@ -662,10 +789,6 @@ function bindKeyboardEvents() {
 
 function bindToolbarEvents() {
   document.getElementById('export-btn').addEventListener('click', exportSpreadsheet);
-  document.getElementById('add-row-btn').addEventListener('click', addRow);
-  document.getElementById('remove-row-btn').addEventListener('click', removeRow);
-  document.getElementById('add-col-btn').addEventListener('click', addColumn);
-  document.getElementById('remove-col-btn').addEventListener('click', removeColumn);
 }
 
 function initSpreadsheet() {
@@ -674,6 +797,7 @@ function initSpreadsheet() {
   bindToolbarEvents();
   bindKeyboardEvents();
   bindDragSelectionEvents();
+  bindContextMenuEvents();
 }
 
 document.addEventListener('DOMContentLoaded', initSpreadsheet);

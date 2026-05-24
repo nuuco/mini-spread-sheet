@@ -137,3 +137,13 @@
 > 의도/반영: `beginDragSelection`·`updateDragSelection`·`endDragSelection` 추가. 셀·행·열 헤더 `mousedown`→드래그→`mouseup`으로 범위 확장. 클릭만 하면 기존 선택/더블클릭 편집 유지, 드래그 시 `body.is-dragging`으로 텍스트 선택 방지.
 
 ---
+
+- 프롬프트:
+
+```
+행/열 추가·삭제 버튼 대신 행·열 헤더 오른클릭 메뉴(위/아래 추가, 삭제)와 하단 행×열 수 표시로 변경.
+```
+
+> 의도/반영: 하단 버튼 제거. 행·열 헤더 `contextmenu`로 메뉴 표시, `insertRowAt`/`deleteRowAt`/`insertColumnAt`/`deleteColumnAt` 구현. 하단 `5행 × 5열` 라벨(`updateGridSizeLabel`) 추가.
+
+---

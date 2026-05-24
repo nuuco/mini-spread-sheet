@@ -17,13 +17,12 @@
       <div id="spreadsheet" class="spreadsheet" aria-label="스프레드시트 그리드"></div>
     </section>
 
-    <footer class="controls">
-      <button id="add-row-btn" type="button">+ 행 추가</button>
-      <button id="remove-row-btn" type="button">- 행 삭제</button>
-      <button id="add-col-btn" type="button">+ 열 추가</button>
-      <button id="remove-col-btn" type="button">- 열 삭제</button>
+    <footer class="grid-info">
+      <span id="grid-size-label">5행 × 5열</span>
     </footer>
   </main>
+
+  <menu id="context-menu" class="context-menu hidden" type="context"></menu>
 
   <script src="app.js" defer></script>
 </body>
