@@ -81,6 +81,7 @@ body {
   font-weight: 600;
   height: 36px;
   user-select: none;
+  cursor: pointer;
 }
 
 .row-header {
@@ -104,17 +105,15 @@ body {
   background: #f5f9fc;
 }
 
-.cell.highlight-row,
-.cell.highlight-col {
+.cell.in-selection {
   background: #e8f4fc;
 }
 
-.cell.highlight-row:hover,
-.cell.highlight-col:hover {
+.cell.in-selection:hover {
   background: #dceefa;
 }
 
-.cell.selected {
+.cell.active-cell {
   background: #cce8f9;
   outline: 2px solid #1e4d8c;
   outline-offset: -2px;

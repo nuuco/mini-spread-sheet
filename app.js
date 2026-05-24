@@ -10,7 +10,9 @@ let spreadsheet = {
   rows: CONFIG.defaultRows,
   cols: CONFIG.defaultCols,
   data: [],
+  anchor: { row: 0, col: 0 },
   focus: { row: 0, col: 0 },
+  selectionKind: 'range',
   mode: 'select',
 };
 
@@ -36,11 +38,58 @@ function formatCellAddress(row, col) {
   return `${columnIndexToLabel(col)}${row + 1}`;
 }
 
-function clampFocus() {
-  spreadsheet.focus.row = Math.min(spreadsheet.focus.row, spreadsheet.rows - 1);
-  spreadsheet.focus.col = Math.min(spreadsheet.focus.col, spreadsheet.cols - 1);
-  spreadsheet.focus.row = Math.max(spreadsheet.focus.row, 0);
-  spreadsheet.focus.col = Math.max(spreadsheet.focus.col, 0);
+function clampSelection() {
+  const clamp = (point) => ({
+    row: Math.max(0, Math.min(point.row, spreadsheet.rows - 1)),
+    col: Math.max(0, Math.min(point.col, spreadsheet.cols - 1)),
+  });
+
+  spreadsheet.anchor = clamp(spreadsheet.anchor);
+  spreadsheet.focus = clamp(spreadsheet.focus);
+}
+
+function getSelectionBounds() {
+  const { anchor, focus, selectionKind } = spreadsheet;
+
+  if (selectionKind === 'row') {
+    return {
+      rowMin: Math.min(anchor.row, focus.row),
+      rowMax: Math.max(anchor.row, focus.row),
+      colMin: 0,
+      colMax: spreadsheet.cols - 1,
+    };
+  }
+
+  if (selectionKind === 'column') {
+    return {
+      rowMin: 0,
+      rowMax: spreadsheet.rows - 1,
+      colMin: Math.min(anchor.col, focus.col),
+      colMax: Math.max(anchor.col, focus.col),
+    };
+  }
+
+  return {
+    rowMin: Math.min(anchor.row, focus.row),
+    rowMax: Math.max(anchor.row, focus.row),
+    colMin: Math.min(anchor.col, focus.col),
+    colMax: Math.max(anchor.col, focus.col),
+  };
+}
+
+function isCellInSelection(row, col) {
+  const bounds = getSelectionBounds();
+  return (
+    row >= bounds.rowMin &&
+    row <= bounds.rowMax &&
+    col >= bounds.colMin &&
+    col <= bounds.colMax
+  );
+}
+
+function isSingleCellSelection() {
+  const bounds = getSelectionBounds();
+  return bounds.rowMin === bounds.rowMax && bounds.colMin === bounds.colMax;
 }
 
 function getCellInput(row, col) {
@@ -49,21 +98,22 @@ function getCellInput(row, col) {
   );
 }
 
-function setFocus(row, col) {
-  spreadsheet.focus = { row, col };
+function updateSelectionUI() {
   updateCoordinateDisplay();
   updateHeaderHighlights();
   updateCellSelection();
+  syncInputEditState();
 }
 
 function syncInputEditState() {
   const { row, col } = spreadsheet.focus;
-  const isEditing = spreadsheet.mode === 'edit';
+  const isEditing = spreadsheet.mode === 'edit' && isSingleCellSelection();
 
   document.querySelectorAll('.cell').forEach((cell) => {
     const cellRow = Number(cell.dataset.row);
     const cellCol = Number(cell.dataset.col);
-    const editing = isEditing && cellRow === row && cellCol === col;
+    const editing =
+      isEditing && cellRow === row && cellCol === col && isCellInSelection(cellRow, cellCol);
 
     cell.classList.toggle('editing', editing);
     const input = cell.querySelector('.cell-input');
@@ -73,20 +123,61 @@ function syncInputEditState() {
   });
 }
 
-function enterSelectMode(row, col) {
+function setRowSelection(row, extend = false) {
+  if (extend) {
+    spreadsheet.focus = { row, col: spreadsheet.cols - 1 };
+  } else {
+    spreadsheet.anchor = { row, col: 0 };
+    spreadsheet.focus = { row, col: spreadsheet.cols - 1 };
+  }
+  spreadsheet.selectionKind = 'row';
+  spreadsheet.mode = 'select';
+  blurActiveCellInput();
+  updateSelectionUI();
+}
+
+function setColumnSelection(col, extend = false) {
+  if (extend) {
+    spreadsheet.focus = { row: spreadsheet.rows - 1, col };
+  } else {
+    spreadsheet.anchor = { row: 0, col };
+    spreadsheet.focus = { row: spreadsheet.rows - 1, col };
+  }
+  spreadsheet.selectionKind = 'column';
+  spreadsheet.mode = 'select';
+  blurActiveCellInput();
+  updateSelectionUI();
+}
+
+function blurActiveCellInput() {
   if (document.activeElement?.classList.contains('cell-input')) {
     document.activeElement.blur();
   }
+}
 
+function enterSelectMode(row, col, extend = false) {
+  if (extend) {
+    spreadsheet.focus = { row, col };
+  } else {
+    spreadsheet.anchor = { row, col };
+    spreadsheet.focus = { row, col };
+    spreadsheet.selectionKind = 'range';
+  }
   spreadsheet.mode = 'select';
-  setFocus(row, col);
-  syncInputEditState();
+  blurActiveCellInput();
+  updateSelectionUI();
 }
 
 function enterEditMode(row, col) {
+  if (!isCellInSelection(row, col) || !isSingleCellSelection()) {
+    return;
+  }
+
   spreadsheet.mode = 'edit';
-  setFocus(row, col);
-  syncInputEditState();
+  spreadsheet.anchor = { row, col };
+  spreadsheet.focus = { row, col };
+  spreadsheet.selectionKind = 'range';
+  updateSelectionUI();
 
   const input = getCellInput(row, col);
   input?.focus();
@@ -94,12 +185,16 @@ function enterEditMode(row, col) {
 }
 
 function clearSelectedCellContent() {
-  const { row, col } = spreadsheet.focus;
-  spreadsheet.data[row][col] = '';
+  const bounds = getSelectionBounds();
 
-  const input = getCellInput(row, col);
-  if (input) {
-    input.value = '';
+  for (let row = bounds.rowMin; row <= bounds.rowMax; row += 1) {
+    for (let col = bounds.colMin; col <= bounds.colMax; col += 1) {
+      spreadsheet.data[row][col] = '';
+      const input = getCellInput(row, col);
+      if (input) {
+        input.value = '';
+      }
+    }
   }
 
   saveToLocalStorage();
@@ -107,33 +202,43 @@ function clearSelectedCellContent() {
 
 function updateCoordinateDisplay() {
   const coordinateEl = document.getElementById('cell-coordinate');
-  const { row, col } = spreadsheet.focus;
-  coordinateEl.textContent = `Cell: ${formatCellAddress(row, col)}`;
+  const bounds = getSelectionBounds();
+
+  if (bounds.rowMin === bounds.rowMax && bounds.colMin === bounds.colMax) {
+    coordinateEl.textContent = `Cell: ${formatCellAddress(bounds.rowMin, bounds.colMin)}`;
+    return;
+  }
+
+  const start = formatCellAddress(bounds.rowMin, bounds.colMin);
+  const end = formatCellAddress(bounds.rowMax, bounds.colMax);
+  coordinateEl.textContent = `Selection: ${start}:${end}`;
 }
 
 function updateHeaderHighlights() {
-  const { row, col } = spreadsheet.focus;
+  const bounds = getSelectionBounds();
 
   document.querySelectorAll('.col-header').forEach((header) => {
-    header.classList.toggle('active', Number(header.dataset.col) === col);
+    const col = Number(header.dataset.col);
+    header.classList.toggle('active', col >= bounds.colMin && col <= bounds.colMax);
   });
 
   document.querySelectorAll('.row-header').forEach((header) => {
-    header.classList.toggle('active', Number(header.dataset.row) === row);
+    const row = Number(header.dataset.row);
+    header.classList.toggle('active', row >= bounds.rowMin && row <= bounds.rowMax);
   });
 }
 
 function updateCellSelection() {
-  const { row, col } = spreadsheet.focus;
+  const { row: focusRow, col: focusCol } = spreadsheet.focus;
 
   document.querySelectorAll('.cell').forEach((cell) => {
     const cellRow = Number(cell.dataset.row);
     const cellCol = Number(cell.dataset.col);
-    const isSelected = cellRow === row && cellCol === col;
+    const inSelection = isCellInSelection(cellRow, cellCol);
+    const isActive = inSelection && cellRow === focusRow && cellCol === focusCol;
 
-    cell.classList.toggle('selected', isSelected);
-    cell.classList.toggle('highlight-row', cellRow === row);
-    cell.classList.toggle('highlight-col', cellCol === col);
+    cell.classList.toggle('in-selection', inSelection);
+    cell.classList.toggle('active-cell', isActive);
   });
 }
 
@@ -197,14 +302,37 @@ function bindCellEvents(input, cell, row, col) {
     }
   });
 
-  cell.addEventListener('click', () => {
-    const isSameCell = spreadsheet.focus.row === row && spreadsheet.focus.col === col;
-
-    if (isSameCell && spreadsheet.mode === 'select') {
-      enterEditMode(row, col);
-    } else {
-      enterSelectMode(row, col);
+  cell.addEventListener('click', (event) => {
+    if (event.shiftKey) {
+      enterSelectMode(row, col, true);
+      return;
     }
+
+    const isSameActiveCell =
+      isSingleCellSelection() &&
+      spreadsheet.focus.row === row &&
+      spreadsheet.focus.col === col &&
+      spreadsheet.anchor.row === row &&
+      spreadsheet.anchor.col === col;
+
+    if (isSameActiveCell && spreadsheet.mode === 'select') {
+      enterEditMode(row, col);
+      return;
+    }
+
+    enterSelectMode(row, col, false);
+  });
+}
+
+function bindRowHeaderEvents(rowHeader, row) {
+  rowHeader.addEventListener('click', (event) => {
+    setRowSelection(row, event.shiftKey);
+  });
+}
+
+function bindColHeaderEvents(colHeader, col) {
+  colHeader.addEventListener('click', (event) => {
+    setColumnSelection(col, event.shiftKey);
   });
 }
 
@@ -223,6 +351,7 @@ function renderGrid() {
     colHeader.className = 'col-header';
     colHeader.dataset.col = String(col);
     colHeader.textContent = columnIndexToLabel(col);
+    bindColHeaderEvents(colHeader, col);
     headerRow.appendChild(colHeader);
   }
 
@@ -235,6 +364,7 @@ function renderGrid() {
     rowHeader.className = 'row-header';
     rowHeader.dataset.row = String(row);
     rowHeader.textContent = String(row + 1);
+    bindRowHeaderEvents(rowHeader, row);
     tableRow.appendChild(rowHeader);
 
     for (let col = 0; col < spreadsheet.cols; col += 1) {
@@ -258,8 +388,8 @@ function renderGrid() {
   }
 
   container.replaceChildren(table);
-  clampFocus();
-  enterSelectMode(spreadsheet.focus.row, spreadsheet.focus.col);
+  clampSelection();
+  updateSelectionUI();
 }
 
 function collectSpreadsheetData() {
@@ -309,7 +439,7 @@ function removeRow() {
 
   spreadsheet.data.pop();
   spreadsheet.rows -= 1;
-  clampFocus();
+  clampSelection();
   renderGrid();
   saveToLocalStorage();
 }
@@ -328,7 +458,7 @@ function removeColumn() {
 
   spreadsheet.data.forEach((row) => row.pop());
   spreadsheet.cols -= 1;
-  clampFocus();
+  clampSelection();
   renderGrid();
   saveToLocalStorage();
 }

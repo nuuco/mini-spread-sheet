@@ -77,3 +77,13 @@
 > 의도/반영: `spreadsheet.mode`(select/edit) 분리. 1클릭 `enterSelectMode`(input readonly), 동일 셀 2클릭 `enterEditMode`(input focus). 선택 모드에서 Backspace 시 `clearSelectedCellContent()`. readonly input은 `pointer-events: none`으로 셀 클릭 처리.
 
 ---
+
+- 프롬프트:
+
+```
+여러 셀도 선택되게 만들어줘. 행 번호나 열 번호 클릭하면 그 행이나 열 전체가 선택되게.
+```
+
+> 의도/반영: `anchor`/`focus` 범위 선택 모델 도입. **Shift+클릭**으로 셀·행·열 범위 확장. **행/열 헤더 클릭** 시 해당 행·열 전체 선택. 다중 선택 시 Backspace로 선택 영역 일괄 삭제, 좌표 표시는 `Selection: A1:C3` 형식. CSS는 `.in-selection`·`.active-cell`로 구분.
+
+---
