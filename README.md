@@ -1,42 +1,121 @@
 # Mini Spreadsheet
 
-JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 셀 입력, 범위·행·열 선택, 포커스 좌표 표시, 행/열 헤더 하이라이트, 데이터 수집, Excel(.xlsx) Export, 실행 취소, 복사·붙여넣기, localStorage 자동 저장을 제공합니다.
+JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 셀 입력, 범위·행·열·전체 시트 선택, 포커스 좌표 표시, 행/열 헤더 하이라이트, 데이터 수집, Excel(.xlsx) Export, 실행 취소·다시 실행, 복사·붙여넣기, localStorage 자동 저장을 제공합니다.
 
-요구사항 상세는 [docs/PRD.md](docs/PRD.md), [docs/SRD.md](docs/SRD.md), [docs/TRD.md](docs/TRD.md)를 참고하세요.
+요구사항 문서: [docs/PRD.md](docs/PRD.md) · [docs/SRD.md](docs/SRD.md) · [docs/TRD.md](docs/TRD.md)
 
-## 기능 목록
+## 기능 목록 (요약)
 
 ### 필수 기능
 
 1. **셀 그리드 렌더링** — 열 A, B, … / 행 1, 2, … 형태의 표 UI
-2. **셀 값 입력** — `textarea` 기반 텍스트 입력 (Cmd/Ctrl+Enter로 줄바꿈)
-3. **포커스·선택 좌표 표시** — `Cell: C1` 또는 `Selection: A1:C3`
-4. **행/열 헤더 하이라이트** — 단일 셀 선택 시 해당 열·행 헤더 동시 강조
-5. **데이터 구조화 수집** — 2차원 배열 `string[][]` (`collectSpreadsheetData`)
-6. **Export 기능** — SheetJS로 Excel 파일(`.xlsx`) 다운로드
+2. **셀 값 입력** — `textarea` 기반 (Cmd/Ctrl+Enter로 셀 내 줄바꿈)
+3. **포커스·선택 좌표** — `Cell: C1` 또는 `Selection: A1:C3`
+4. **헤더 하이라이트** — 선택 종류에 따라 행·열 헤더 강조 (아래 상세)
+5. **데이터 수집** — `collectSpreadsheetData()` → `string[][]`
+6. **Export** — SheetJS로 `.xlsx` 다운로드
 
 ### 선택·확장 기능
 
-- **시트 제목** — 툴바 클릭 편집, 기본 「제목없음」, Export 시 파일명·시트 탭명에 반영 (본문 데이터에는 제목 행 없음)
-- **행/열 추가·삭제** — 행·열 **헤더 오른클릭** 컨텍스트 메뉴 (다중 행·열 선택 시 일괄 처리)
-- **범위 선택** — 셀 드래그, Shift+화살표, 행/열 헤더·코너(전체 시트) 선택
-- **실행 취소/다시 실행** — Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z, Ctrl+Y (최대 100단계)
-- **복사·붙여넣기** — TSV 복사, HTML 표·TSV·마크다운 표 붙여넣기 (부족 시 그리드 자동 확장)
-- **localStorage 자동 저장** — 데이터·그리드 크기·제목 (300ms debounce)
-- **UI** — 선택 셀·범위 스타일, 툴바 2행 레이아웃, `N행 × M열` 표시
+- 시트 제목 (툴바 인라인 편집, Export 파일명·탭명)
+- 행·열 추가·삭제 (헤더 오른클릭, 다중 선택 일괄 처리)
+- 범위·행·열·전체 시트 선택 (클릭, 드래그, Shift, 방향키)
+- 실행 취소·다시 실행 (최대 100단계)
+- 복사·붙여넣기 (TSV / HTML 표 / 마크다운 표, 그리드 자동 확장)
+- localStorage 자동 저장 (데이터·크기·제목)
+
+---
+
+## 기능 상세
+
+### 셀 선택·편집
+
+| 동작 | 설명 |
+|------|------|
+| **1번 클릭** | 셀 **선택** (편집 모드 아님, `textarea`는 읽기 전용) |
+| **같은 셀 다시 클릭** | **편집 모드** 진입 (커서·전체 선택 가능) |
+| **드래그** | 여러 셀 **범위 선택** (`Selection: A1:C3` 형식 표시) |
+| **Shift + 클릭** | 기존 앵커부터 클릭한 셀까지 범위 확장 |
+| **Shift + 방향키** | 활성 셀 기준으로 선택 범위 확장 |
+| **방향키** | 활성 셀만 이동 (범위는 단일 셀로 재설정) |
+| **선택 상태에서 입력** | 활성 셀 내용을 **한 글자로 덮어쓴 뒤** 편집 모드 |
+| **Backspace** | 현재 **선택 영역 전체** 내용 삭제 (undo 스냅샷 저장) |
+| **Enter** | 편집 종료 후 **아래 셀**로 이동 |
+| **Cmd/Ctrl + Enter** | 편집 중 셀 **안에서 줄바꿈** |
+
+단일 셀만 선택했을 때는 해당 **행·열 전체**에 연한 하늘색 배경(`highlight-row` / `highlight-col`)이 들어가 스프레드시트처럼 위치를 파악하기 쉽습니다.
+
+### 행·열·전체 시트 선택
+
+| 동작 | 선택 종류 | 헤더·UI |
+|------|-----------|---------|
+| **행 번호** 클릭 / 드래그 | `row` — 해당 행(들) 전체 | **행 헤더만** 진하게 (열 헤더는 비강조) |
+| **열 헤더(A,B,…)** 클릭 / 드래그 | `column` — 해당 열(들) 전체 | **열 헤더만** 진하게 |
+| **좌상단 코너** 클릭 | `sheet` — 전체 시트 | 모든 행·열 헤더 강조 |
+| **셀 영역** 클릭 / 드래그 | `range` — 사각형 범위 | 단일 셀이면 행·열 가이드 + 해당 헤더; 다중이면 범위에 맞는 헤더 |
+
+- 행·열을 여러 개 선택하면 좌표는 `Selection: …` 이고, **활성 셀(포커스)** 은 선택 범위의 **맨 앞**입니다 (행 선택 → 해당 범위의 첫 행·A열, 열 선택 → 1행·첫 열).
+- 행·열 헤더도 **드래그**하면 연속 범위를 선택할 수 있습니다.
+
+### 행·열 추가·삭제 (오른클릭 메뉴)
+
+행 **번호** 또는 열 **헤더**에서 **오른클릭**합니다.
+
+| 메뉴 (행) | 동작 |
+|-----------|------|
+| 위에 행 추가 | 클릭한 행(또는 선택된 행 범위) **위에** 행 삽입 |
+| 아래에 행 추가 | 선택 범위 **아래에** 행 삽입 |
+| 행 삭제 | 선택된 행(들) 삭제 |
+
+| 메뉴 (열) | 동작 |
+|-----------|------|
+| 왼쪽에 열 추가 | 선택 열 **왼쪽**에 열 삽입 |
+| 오른쪽에 열 추가 | 선택 열 **오른쪽**에 열 삽입 |
+| 열 삭제 | 선택된 열(들) 삭제 |
+
+- **행·열을 여러 개 선택한 뒤** 헤더에서 오른클릭하면, 메뉴에 `3개`처럼 개수가 표시되고 **그 개수만큼** 한 번에 추가·삭제됩니다.
+- 항상 **최소 1행 × 1열**은 유지됩니다.
+- 마지막 행·열 헤더에서 메뉴를 열면 화면 밖으로 나가지 않도록 메뉴 위치가 자동 보정됩니다.
+
+### 실행 취소·다시 실행
+
+| 단축키 | 동작 |
+|--------|------|
+| **Cmd/Ctrl + Z** | 실행 취소 |
+| **Cmd/Ctrl + Shift + Z** | 다시 실행 |
+| **Ctrl + Y** | 다시 실행 (Windows 스타일) |
+
+- **그리드 데이터·행·열 개수**만 스냅샷합니다 (최대 **100단계**). 시트 제목 변경은 undo 대상이 아닙니다.
+- 되돌릴 수 있는 예: 셀 편집, 선택 영역 삭제, 행·열 추가·삭제, 붙여넣기 등 `pushUndoSnapshot`이 호출되는 작업.
+
+### 복사·붙여넣기
+
+| 단축키 | 동작 |
+|--------|------|
+| **Cmd/Ctrl + C** | 선택 영역을 **TSV**로 클립보드에 복사 |
+| **Cmd/Ctrl + V** | 클립보드 내용을 활성 셀부터 붙여넣기 |
+
+붙여넣기 우선 순서: **HTML `<table>`** → 없으면 **일반 텍스트** (TSV·마크다운 `|` 표, 구분선 행은 스킵).  
+붙여넣을 범위가 현재 그리드보다 크면 **행·열을 자동으로 늘린 뒤** 값을 채웁니다.
+
+### 시트 제목·Export·저장
+
+- **시트 제목**: 툴바 제목 클릭 → 인라인 편집 (기본 표시 「제목없음」). Enter 저장, Esc 취소.
+- **Export Excel**: 그리드 **데이터만** 시트에 넣고, **파일명·워크시트 탭**에 제목 반영 (`spreadsheet.xlsx` / `Sheet1` fallback).
+- **localStorage**: 입력·구조 변경 후 **300ms** 뒤 자동 저장 (`mini-spreadsheet-data`: `rows`, `cols`, `data`, `title`).
+
+---
 
 ## 실행 방법
 
 1. 저장소 클론 또는 다운로드
-2. 아래 중 하나로 실행:
-   - `index.html`을 브라우저에서 직접 열기
-   - 로컬 서버: `npx serve .` 후 안내 URL 접속
+2. `index.html`을 브라우저에서 열거나 `npx serve .` 로 로컬 서버 실행
 
-> **Export:** SheetJS는 CDN에서 로드됩니다. Excel보내기 시 네트워크 연결이 필요합니다.
+> **Export:** SheetJS는 CDN에서 로드됩니다. Excel보내기 시 **네트워크**가 필요합니다.
 
 ## 그리드 크기 변경
 
-[`app.js`](app.js) 상단 `CONFIG`로 **초기** 크기를 바꿉니다.
+[`app.js`](app.js) 상단 `CONFIG`로 **초기** 크기를 설정합니다.
 
 ```javascript
 const CONFIG = {
@@ -45,44 +124,43 @@ const CONFIG = {
 };
 ```
 
-**런타임**에는 행·열 **헤더를 오른클릭**해 위/아래·왼쪽/오른쪽에 추가하거나 삭제합니다. 툴바에 `N행 × M열`이 표시됩니다. 붙여넣기로 필요한 만큼 행·열도 자동 확장됩니다.
+**런타임**에는 행·열 헤더 **오른클릭 메뉴** 또는 **붙여넣기**로 크기를 바꿀 수 있습니다. 툴바 **2행** 오른쪽에 `N행 × M열`이 표시됩니다.
 
-## 키보드·마우스 (요약)
+## 키보드·마우스 빠른 참조
 
 | 동작 | 입력 |
 |------|------|
-| 셀 편집 시작 | 셀 재클릭 또는 문자 입력 |
-| 아래로 이동 | Enter |
-| 셀 내 줄바꿈 | Cmd/Ctrl + Enter |
-| 범위 확장 | Shift + 화살표 / Shift + 드래그 |
-| 전체 시트 선택 | 좌상단 코너 클릭 |
-| 복사 / 붙여넣기 | Cmd/Ctrl+C / Cmd/Ctrl+V |
-| 실행 취소 / 다시 실행 | Cmd/Ctrl+Z / Cmd/Ctrl+Shift+Z 또는 Ctrl+Y |
+| 셀 선택 | 클릭 |
+| 셀 편집 | 같은 셀 다시 클릭, 또는 선택 후 타이핑 |
+| 범위 선택 | 드래그 / Shift+클릭 / Shift+방향키 |
+| 행 전체 선택 | 행 번호 클릭·드래그 |
+| 열 전체 선택 | 열 헤더 클릭·드래그 |
+| 전체 시트 | 좌상단 코너 클릭 |
+| 복사 / 붙여넣기 | Cmd/Ctrl+C / V |
+| 실행 취소 / 다시 실행 | Cmd/Ctrl+Z / Shift+Z 또는 Ctrl+Y |
 | 선택 영역 비우기 | Backspace |
-| 행·열 메뉴 | 행·열 헤더 **오른클릭** |
+| 행·열 추가·삭제 | 행·열 헤더 **오른클릭** |
 
 ## Export 및 Google Sheets 검증
 
-1. 데이터 입력 (선택: 툴바에서 시트 제목 편집)
-2. **Export Excel** 클릭 → `{제목}.xlsx` 다운로드 (제목 없으면 `spreadsheet.xlsx`)
-3. Excel에서 열거나 [Google Sheets](https://sheets.google.com) → **파일 → 가져오기 → 업로드**
-4. 시트 **본문** 셀 위치·값이 그리드와 같은지 확인 (파일명·탭명만 제목 반영)
+1. 데이터 입력 (선택: 시트 제목 편집)
+2. **Export Excel** → `{제목}.xlsx` (제목 없으면 `spreadsheet.xlsx`)
+3. Excel 또는 [Google Sheets](https://sheets.google.com) → **파일 → 가져오기 → 업로드**
+4. 시트 본문이 그리드와 같은지 확인
 
 ## 파일 구조
 
 ```
-├── index.html       # DOM, SheetJS CDN
-├── style.css        # 스타일
-├── app.js           # 로직
+├── index.html
+├── style.css
+├── app.js
 ├── README.md
 ├── AGENTS.md
 ├── docs/
-│   ├── PRD.md
-│   ├── SRD.md
-│   ├── TRD.md
+│   ├── PRD.md · SRD.md · TRD.md
 │   ├── PROMPT_LOG.md
 │   └── screenshots/
-└── exports/         # (수동) Export 샘플
+└── exports/
 ```
 
 ## app.js 주요 함수
@@ -91,22 +169,22 @@ const CONFIG = {
 |------|------|
 | `initSpreadsheet()` | 초기화·이벤트 바인딩 |
 | `renderGrid()` | 그리드 DOM 생성 |
-| `updateSelectionUI()` | 좌표·헤더·선택·크기 라벨 동기화 |
-| `collectSpreadsheetData()` | 2D 배열 반환 |
-| `exportSpreadsheet()` | Excel(.xlsx) 다운로드 |
-| `saveToLocalStorage()` / `loadFromLocalStorage()` | 자동 저장/복원 |
-| `undoSpreadsheet()` / `redoSpreadsheet()` | 실행 취소/다시 실행 |
-| `copySelectionToClipboard()` / `pasteFromClipboard()` | 복사·붙여넣기 |
+| `beginDragSelection()` / `updateDragSelection()` | 드래그 선택 |
+| `getSelectionBounds()` / `updateSelectionUI()` | 범위·좌표·헤더·하이라이트 |
+| `enterEditMode()` / `clearSelectedCellContent()` | 편집·삭제 |
+| `collectSpreadsheetData()` / `exportSpreadsheet()` | 데이터·Export |
+| `undoSpreadsheet()` / `redoSpreadsheet()` | 실행 취소·다시 실행 |
+| `copySelectionToClipboard()` / `pasteFromClipboard()` | 클립보드 |
 | `insertRowsAt()` / `deleteSelectedRows()` 등 | 행·열 조작 |
+| `showContextMenu()` | 행·열 헤더 메뉴 |
 
 ## 제출 전 체크리스트
 
-- [ ] 표 화면이 정상적으로 잘 나오나요?
-- [ ] 칸마다 텍스트 입력이 잘 되나요?
-- [ ] 셀 선택 시 좌표가 바뀌고, 단일 셀일 때 가로/세로 헤더가 동시에 강조되나요?
-- [ ] Excel 파일이 정상적으로 만들어지고 Google Sheets에 올렸을 때도 잘 연동되나요?
-- [ ] 새로고침 후 데이터·제목·그리드 크기가 유지되나요?
-- [ ] 코드가 HTML/CSS/JS로 분리되어 있나요?
+- [ ] 표·셀 입력·헤더 하이라이트가 정상인가요?
+- [ ] 범위·행·열 선택, 드래그, 오른클릭 추가·삭제가 동작하나요?
+- [ ] undo/redo, 복사·붙여넣기가 필요한 만큼 동작하나요?
+- [ ] Excel Export·Google Sheets Import가 맞나요?
+- [ ] 새로고침 후 데이터·제목·크기가 유지되나요?
 - [ ] README와 `docs/PROMPT_LOG.md`를 포함했나요?
 
 ## 기술 스택

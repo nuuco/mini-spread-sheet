@@ -20,3 +20,4 @@
 - 요구사항 문서 최신화: 현재 구현 기준 PRD/SRD/TRD/README 동기화 (xlsx, 선택·undo·붙여넣기·시트제목)
 - 시트 제목 편집 UI: contenteditable 인라인 편집, 밑줄·커서만 강조 (input 박스 제거)
 - 시트 제목 전체 삭제 시 높이 버그: contenteditable 잔여 br 제거 정규화
+- README 기능 상세: 선택·행열·undo·붙여넣기·컨텍스트 메뉴 등 사용 가이드 보강
