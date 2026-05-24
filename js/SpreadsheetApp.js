@@ -212,6 +212,21 @@ export class SpreadsheetApp {
     }
   }
 
+  exitEditMode(row, col) {
+    const { model } = this;
+    if (model.mode !== 'edit') {
+      return;
+    }
+    const active = model.getActiveCell();
+    if (row !== undefined && col !== undefined && (active.row !== row || active.col !== col)) {
+      return;
+    }
+    this.syncActiveCellFromInput();
+    this.editUndoRecorded = false;
+    model.mode = 'select';
+    this.refreshSelectionUI();
+  }
+
   refreshSelectionUI() {
     this.updateCoordinateDisplay();
     this.updateHeaderHighlights();
@@ -318,6 +333,7 @@ export class SpreadsheetApp {
       if (editing) {
         GridRenderer.layoutEditingInput(input, cell);
       } else {
+        GridRenderer.collapseInputSelection(input);
         GridRenderer.resetEditingInputLayout(input);
       }
     });
@@ -325,6 +341,7 @@ export class SpreadsheetApp {
 
   selectEntireSheet() {
     this.finishTitleEditIfActive();
+    this.exitEditMode();
     this.model.selectEntireSheet();
     this.blurActiveCellInput();
     this.refreshSelectionUI();
@@ -334,6 +351,7 @@ export class SpreadsheetApp {
     this.finishTitleEditIfActive();
 
     const { model } = this;
+    this.exitEditMode();
 
     if (kind === 'cell') {
       const activeCell = model.getActiveCell();
@@ -349,7 +367,6 @@ export class SpreadsheetApp {
       this.drag.wasActiveBeforeDown = false;
     }
 
-    model.mode = 'select';
     this.blurActiveCellInput();
 
     if (kind === 'cell') {
@@ -514,7 +531,7 @@ export class SpreadsheetApp {
     const nextRow = Math.max(0, Math.min(activeCell.row + deltaRow, this.model.rows - 1));
     const nextCol = Math.max(0, Math.min(activeCell.col + deltaCol, this.model.cols - 1));
 
-    this.model.mode = 'select';
+    this.exitEditMode();
     this.blurActiveCellInput();
 
     if (extend) {
@@ -540,8 +557,7 @@ export class SpreadsheetApp {
       this.handleCellInput(row, col, input.value);
     }
 
-    this.editUndoRecorded = false;
-    this.model.mode = 'select';
+    this.exitEditMode(row, col);
     this.blurActiveCellInput();
 
     const nextRow = Math.min(row + 1, this.model.rows - 1);

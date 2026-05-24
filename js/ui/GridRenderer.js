@@ -33,6 +33,11 @@ export class GridRenderer {
     input.style.zIndex = '';
   }
 
+  static collapseInputSelection(input) {
+    const end = input.value.length;
+    input.setSelectionRange(end, end);
+  }
+
   static measureTextWidth(input, text) {
     const style = window.getComputedStyle(input);
     const canvas = document.createElement('canvas');
@@ -170,16 +175,8 @@ export class GridRenderer {
     });
 
     input.addEventListener('blur', () => {
-      const { model } = app;
-      if (
-        model.mode === 'edit' &&
-        model.focus.row === row &&
-        model.focus.col === col
-      ) {
-        app.editUndoRecorded = false;
-        model.mode = 'select';
-        app.refreshSelectionUI();
-      }
+      GridRenderer.collapseInputSelection(input);
+      app.exitEditMode(row, col);
     });
 
     cell.addEventListener('mousedown', (event) => {

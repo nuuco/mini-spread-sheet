@@ -469,3 +469,13 @@ GridRenderer model.cols undefined 오류 / 파비콘·모서리칸 README·AGENT
 > 의도/반영: blur 시 `finishEdit()`로 제목 편집 종료는 맞음. 셀 `mousedown`의 `preventDefault()` 때문에 blur가 안 뜨는 경우 보완 — `finishTitleEditIfActive()`·제목 영역 밖 capture `mousedown`·`beginDragSelection`/`selectEntireSheet` 진입 시 제목 편집 저장 후 종료.
 
 ---
+
+- 프롬프트:
+
+```
+편집모드에서 해당 셀 :select 되었다가 다른 셀 클릭하면 이전 셀 :select가 그대로 있어. 취소되게 하는 방법 없을까?
+```
+
+> 의도/반영: 편집 진입 시 `input.select()`로 텍스트 전체 선택이 걸리는데, 다른 셀 `mousedown` → `beginDragSelection`이 먼저 `mode = 'select'`로 바꿔 blur 조건(`mode === 'edit'`)이 맞지 않아 이전 셀에 선택 하이라이트·편집 UI가 남을 수 있음. `GridRenderer.collapseInputSelection`·`SpreadsheetApp.exitEditMode` 추가. 다른 셀 클릭·blur·방향키 이동·Enter 아래 이동·전체 시트 선택 시 편집 종료·텍스트 선택 해제·오버레이 레이아웃 초기화. AGENTS.md 작업 이력 반영.
+
+---
