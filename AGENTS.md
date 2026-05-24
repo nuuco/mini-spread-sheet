@@ -30,3 +30,4 @@
 - 시트 제목 편집: 그리드·모서리 클릭 시 제목 편집 종료 (셀 mousedown preventDefault로 blur 막힘 보완)
 - 셀 textarea: id·name 속성 추가 (폼 필드 접근성 경고 해소)
 - 편집 종료 시 텍스트 선택 해제: 다른 셀 클릭·blur 시 collapseInputSelection·exitEditMode로 이전 셀 select 잔상 제거
+- 초기·새로고침 선택 없음: selectionKind `none`, 좌표 `—`, 그리드 밖 클릭 시 clearCellSelection

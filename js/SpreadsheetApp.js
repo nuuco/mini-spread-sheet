@@ -61,7 +61,9 @@ export class SpreadsheetApp {
     this.storage.load(this.model);
     this.titleEditor.applyToField();
     this.grid.render();
+    this.model.clearSelection();
     this.bindGlobalEvents();
+    this.refreshSelectionUI();
   }
 
   finishTitleEditIfActive() {
@@ -76,8 +78,14 @@ export class SpreadsheetApp {
     document.addEventListener(
       'mousedown',
       (event) => {
+        if (event.button !== 0) {
+          return;
+        }
         if (this.titleEditor.isEditing() && !event.target.closest('#sheet-title-wrap')) {
           this.titleEditor.finishEdit(false);
+        }
+        if (!event.target.closest('#spreadsheet')) {
+          this.clearCellSelection();
         }
       },
       true,
@@ -105,6 +113,9 @@ export class SpreadsheetApp {
         return;
       }
       if (isCopyShortcut(event)) {
+        if (!this.model.hasSelection()) {
+          return;
+        }
         event.preventDefault();
         void this.copySelection();
         return;
@@ -122,11 +133,17 @@ export class SpreadsheetApp {
         return;
       }
       if (event.key === 'Backspace') {
+        if (!this.model.hasSelection()) {
+          return;
+        }
         event.preventDefault();
         this.clearSelectedContent();
         return;
       }
       if (event.key === 'Enter') {
+        if (!this.model.hasSelection()) {
+          return;
+        }
         event.preventDefault();
         const { row, col } = this.model.getActiveCell();
         this.model.anchor = { row, col };
@@ -138,9 +155,22 @@ export class SpreadsheetApp {
       if (!isTypingKey(event)) {
         return;
       }
+      if (!this.model.hasSelection()) {
+        return;
+      }
       event.preventDefault();
       this.startTypingInActiveCell(event.key);
     });
+  }
+
+  clearCellSelection() {
+    if (!this.model.hasSelection() && this.model.mode !== 'edit') {
+      return;
+    }
+    this.exitEditMode();
+    this.blurActiveCellInput();
+    this.model.clearSelection();
+    this.refreshSelectionUI();
   }
 
   persist() {
@@ -245,7 +275,15 @@ export class SpreadsheetApp {
     if (!this.refs.coordinate) {
       return;
     }
+    if (!this.model.hasSelection()) {
+      this.refs.coordinate.textContent = '—';
+      return;
+    }
     const bounds = this.model.getSelectionBounds();
+    if (!bounds) {
+      this.refs.coordinate.textContent = '—';
+      return;
+    }
     if (bounds.rowMin === bounds.rowMax && bounds.colMin === bounds.colMax) {
       this.refs.coordinate.textContent = `Cell: ${formatCellAddress(bounds.rowMin, bounds.colMin)}`;
       return;
@@ -258,6 +296,14 @@ export class SpreadsheetApp {
   updateHeaderHighlights() {
     const bounds = this.model.getSelectionBounds();
     const { selectionKind } = this.model;
+
+    if (!bounds) {
+      document.querySelectorAll('.col-header, .row-header').forEach((header) => {
+        header.classList.remove('active');
+      });
+      return;
+    }
+
     const singleCell = this.model.isSingleCellSelection();
     const activeCell = this.model.getActiveCell();
 
@@ -293,6 +339,13 @@ export class SpreadsheetApp {
   }
 
   updateCellSelection() {
+    if (!this.model.hasSelection()) {
+      document.querySelectorAll('.cell').forEach((cell) => {
+        cell.classList.remove('in-selection', 'active-cell', 'highlight-row', 'highlight-col');
+      });
+      return;
+    }
+
     const { row: focusRow, col: focusCol } = this.model.getActiveCell();
     const showRowColGuide =
       this.model.isSingleCellSelection() && this.model.selectionKind === 'range';
@@ -311,6 +364,20 @@ export class SpreadsheetApp {
   }
 
   syncInputEditState() {
+    if (!this.model.hasSelection()) {
+      document.querySelectorAll('.cell').forEach((cell) => {
+        cell.classList.remove('editing');
+        const input = cell.querySelector('.cell-input');
+        if (!input) {
+          return;
+        }
+        input.readOnly = true;
+        GridRenderer.collapseInputSelection(input);
+        GridRenderer.resetEditingInputLayout(input);
+      });
+      return;
+    }
+
     const { row, col } = this.model.getActiveCell();
     const isEditing = this.model.mode === 'edit' && this.model.isSingleCellSelection();
 
@@ -357,6 +424,7 @@ export class SpreadsheetApp {
       const activeCell = model.getActiveCell();
       this.drag.wasActiveBeforeDown =
         model.mode === 'select' &&
+        model.hasSelection() &&
         model.isSingleCellSelection() &&
         model.selectionKind === 'range' &&
         activeCell.row === row &&
@@ -527,6 +595,14 @@ export class SpreadsheetApp {
   }
 
   moveActiveCellBy(deltaRow, deltaCol, extend = false) {
+    if (!this.model.hasSelection()) {
+      this.model.setRangeSelection({ row: 0, col: 0 }, { row: 0, col: 0 });
+      if (deltaRow === 0 && deltaCol === 0) {
+        this.refreshSelectionUI();
+        return;
+      }
+    }
+
     const activeCell = this.model.getActiveCell();
     const nextRow = Math.max(0, Math.min(activeCell.row + deltaRow, this.model.rows - 1));
     const nextCol = Math.max(0, Math.min(activeCell.col + deltaCol, this.model.cols - 1));
@@ -568,9 +644,15 @@ export class SpreadsheetApp {
   }
 
   clearSelectedContent() {
+    if (!this.model.hasSelection()) {
+      return;
+    }
     this.pushUndoSnapshot();
     this.model.clearSelectionContent();
     const bounds = this.model.getSelectionBounds();
+    if (!bounds) {
+      return;
+    }
     for (let row = bounds.rowMin; row <= bounds.rowMax; row += 1) {
       for (let col = bounds.colMin; col <= bounds.colMax; col += 1) {
         const input = this.grid.getCellInput(row, col);
@@ -583,11 +665,18 @@ export class SpreadsheetApp {
   }
 
   async copySelection() {
+    if (!this.model.hasSelection()) {
+      return;
+    }
     const tsv = buildTsvContent(this.model.getSelectionDataForCopy());
     await navigator.clipboard.writeText(tsv);
   }
 
   async pasteSelection() {
+    if (!this.model.hasSelection()) {
+      this.model.setRangeSelection({ row: 0, col: 0 }, { row: 0, col: 0 });
+      this.refreshSelectionUI();
+    }
     const { row, col } = this.model.getActiveCell();
 
     try {

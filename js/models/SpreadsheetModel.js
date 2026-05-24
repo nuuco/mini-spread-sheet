@@ -17,7 +17,16 @@ export class SpreadsheetModel {
     this.title = '';
     this.anchor = { row: 0, col: 0 };
     this.focus = { row: 0, col: 0 };
-    this.selectionKind = 'range';
+    this.selectionKind = 'none';
+    this.mode = 'select';
+  }
+
+  hasSelection() {
+    return this.selectionKind !== 'none';
+  }
+
+  clearSelection() {
+    this.selectionKind = 'none';
     this.mode = 'select';
   }
 
@@ -67,12 +76,19 @@ export class SpreadsheetModel {
   }
 
   clampSelection() {
+    if (!this.hasSelection()) {
+      return;
+    }
     this.anchor = this.clampPoint(this.anchor);
     this.focus = this.clampPoint(this.focus);
   }
 
   getSelectionBounds() {
     const { anchor, focus, selectionKind } = this;
+
+    if (selectionKind === 'none') {
+      return null;
+    }
 
     if (selectionKind === 'row') {
       return {
@@ -111,6 +127,9 @@ export class SpreadsheetModel {
 
   isCellInSelection(row, col) {
     const bounds = this.getSelectionBounds();
+    if (!bounds) {
+      return false;
+    }
     return (
       row >= bounds.rowMin &&
       row <= bounds.rowMax &&
@@ -121,11 +140,17 @@ export class SpreadsheetModel {
 
   isSingleCellSelection() {
     const bounds = this.getSelectionBounds();
+    if (!bounds) {
+      return false;
+    }
     return bounds.rowMin === bounds.rowMax && bounds.colMin === bounds.colMax;
   }
 
   getActiveCell() {
     const bounds = this.getSelectionBounds();
+    if (!bounds) {
+      return { row: 0, col: 0 };
+    }
 
     if (this.selectionKind === 'sheet') {
       return { row: 0, col: 0 };
@@ -195,6 +220,9 @@ export class SpreadsheetModel {
 
   clearSelectionContent() {
     const bounds = this.getSelectionBounds();
+    if (!bounds) {
+      return;
+    }
     for (let row = bounds.rowMin; row <= bounds.rowMax; row += 1) {
       for (let col = bounds.colMin; col <= bounds.colMax; col += 1) {
         this.data[row][col] = '';
@@ -204,6 +232,9 @@ export class SpreadsheetModel {
 
   getSelectionDataForCopy() {
     const bounds = this.getSelectionBounds();
+    if (!bounds) {
+      return [];
+    }
     const rows = [];
     for (let row = bounds.rowMin; row <= bounds.rowMax; row += 1) {
       const rowValues = [];
@@ -299,6 +330,10 @@ export class SpreadsheetModel {
 
   getRowInsertContext(contextIndex) {
     const bounds = this.getSelectionBounds();
+    if (!bounds) {
+      const index = contextIndex ?? 0;
+      return { count: 1, aboveIndex: index, belowIndex: index + 1 };
+    }
     const count = this.selectionKind === 'row' ? bounds.rowMax - bounds.rowMin + 1 : 1;
     const aboveIndex = this.selectionKind === 'row' ? bounds.rowMin : (contextIndex ?? 0);
     const belowIndex =
@@ -308,6 +343,10 @@ export class SpreadsheetModel {
 
   getColumnInsertContext(contextIndex) {
     const bounds = this.getSelectionBounds();
+    if (!bounds) {
+      const index = contextIndex ?? 0;
+      return { count: 1, leftIndex: index, rightIndex: index + 1 };
+    }
     const count = this.selectionKind === 'column' ? bounds.colMax - bounds.colMin + 1 : 1;
     const leftIndex = this.selectionKind === 'column' ? bounds.colMin : (contextIndex ?? 0);
     const rightIndex =

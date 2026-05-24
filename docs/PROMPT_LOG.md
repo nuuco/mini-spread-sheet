@@ -479,3 +479,13 @@ GridRenderer model.cols undefined 오류 / 파비콘·모서리칸 README·AGENT
 > 의도/반영: 편집 진입 시 `input.select()`로 텍스트 전체 선택이 걸리는데, 다른 셀 `mousedown` → `beginDragSelection`이 먼저 `mode = 'select'`로 바꿔 blur 조건(`mode === 'edit'`)이 맞지 않아 이전 셀에 선택 하이라이트·편집 UI가 남을 수 있음. `GridRenderer.collapseInputSelection`·`SpreadsheetApp.exitEditMode` 추가. 다른 셀 클릭·blur·방향키 이동·Enter 아래 이동·전체 시트 선택 시 편집 종료·텍스트 선택 해제·오버레이 레이아웃 초기화. AGENTS.md 작업 이력 반영.
 
 ---
+
+- 프롬프트:
+
+```
+새로고침하면 항상 A1칸 포커즈가 되어 있는데, 처음에는 그냥 어느 셀도 포커즈 안되게 하고싶어. 그리고 포커즈 되었더라도 바깥을 클릭했으면 포커즈 풀리게
+```
+
+> 의도/반영: 기본·로드 후 A1 자동 선택 제거. `SpreadsheetModel`에 `selectionKind: 'none'`·`hasSelection()`·`clearSelection()` 추가, `getSelectionBounds` 등 선택 API는 none 시 빈 처리. `init()`에서 선택 해제·좌표 `—` 표시. `#spreadsheet` 밖 왼쪽 클릭 시 `clearCellSelection()`(편집 종료·하이라이트 제거). 선택 없을 때 방향키는 A1부터 이동, 붙여넣기는 A1 기준, Backspace·Enter·타이핑·복사는 무시. `index.html` 초기 좌표 `—`. AGENTS.md 작업 이력 반영.
+
+---
