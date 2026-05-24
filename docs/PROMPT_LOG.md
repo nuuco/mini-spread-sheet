@@ -117,3 +117,13 @@
 > 의도/반영: `getActiveCell()` 추가 — 행 선택 시 `{ rowMin, 0 }`, 열 선택 시 `{ row: 0, colMin }` 반환. `setRowSelection`/`setColumnSelection`의 focus를 첫 셀 기준으로 변경, active-cell·타이핑·편집 UI도 `getActiveCell()` 사용.
 
 ---
+
+- 프롬프트:
+
+```
+버튼명은 Export Excel 이어야 해.
+```
+
+> 의도/반영: `index.html` Export 버튼 라벨을 `Export Excel`로 변경, README 안내 문구 동일 반영.
+
+---

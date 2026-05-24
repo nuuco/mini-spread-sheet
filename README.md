@@ -42,7 +42,7 @@ const CONFIG = {
 ## Export 및 Google Sheets 검증
 
 1. 스프레드시트에 데이터 입력
-2. **Export Spreadsheet** 버튼 클릭 → `spreadsheet.csv` 다운로드
+2. **Export Excel** 버튼 클릭 → `spreadsheet.csv` 다운로드
 3. Excel에서 열거나, [Google Sheets](https://sheets.google.com) → **파일 → 가져오기 → 업로드** 로 CSV 업로드
 4. 데이터 위치가 그리드와 동일한지 확인
 
