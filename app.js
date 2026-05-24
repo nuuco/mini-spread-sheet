@@ -840,8 +840,8 @@ function getColContextMenuItems() {
   const countLabel = count > 1 ? ` ${count}개` : '';
 
   return [
-    { action: 'col-right', label: `오른쪽에 열${countLabel} 추가` },
     { action: 'col-left', label: `왼쪽에 열${countLabel} 추가` },
+    { action: 'col-right', label: `오른쪽에 열${countLabel} 추가` },
     {
       action: 'col-delete',
       label: count > 1 ? `열 삭제 (${count}개)` : '열 삭제',
