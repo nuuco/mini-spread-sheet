@@ -425,6 +425,236 @@ function isGridKeyboardTarget(event) {
   return !event.target.closest('.controls') && !event.target.closest('.toolbar');
 }
 
+function isCopyShortcut(event) {
+  return (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'c' && !event.shiftKey;
+}
+
+function isPasteShortcut(event) {
+  return (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'v' && !event.shiftKey;
+}
+
+function normalizeClipboardText(text) {
+  return text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+
+function trimTableRows(rows) {
+  return rows
+    .map((row) => row.map((cell) => cell.trim()))
+    .filter((row) => row.some((cell) => cell !== ''));
+}
+
+function looksLikeMarkdownTable(text) {
+  const lines = text.split('\n').filter((line) => line.trim());
+  if (!lines.length) {
+    return false;
+  }
+
+  const pipeLines = lines.filter((line) => line.includes('|'));
+  return pipeLines.length > 0 && pipeLines.length / lines.length >= 0.5;
+}
+
+function isMarkdownSeparatorRow(cells) {
+  return cells.every((cell) => {
+    const trimmed = cell.replace(/\s/g, '');
+    return trimmed === '' || /^:?-{3,}:?$/.test(trimmed);
+  });
+}
+
+function parseMarkdownTableRow(line) {
+  const cells = line.split('|').map((cell) => cell.trim());
+
+  if (cells.length && cells[0] === '') {
+    cells.shift();
+  }
+  if (cells.length && cells[cells.length - 1] === '') {
+    cells.pop();
+  }
+
+  return cells;
+}
+
+function parseMarkdownClipboardTable(text) {
+  const rows = [];
+
+  text.split('\n').forEach((line) => {
+    if (!line.includes('|')) {
+      return;
+    }
+
+    const cells = parseMarkdownTableRow(line);
+    if (!cells.length || isMarkdownSeparatorRow(cells)) {
+      return;
+    }
+
+    rows.push(cells);
+  });
+
+  return rows;
+}
+
+function parseDelimitedClipboardTable(text) {
+  const lines = text.split('\n');
+  while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+    lines.pop();
+  }
+  while (lines.length > 0 && lines[0].trim() === '') {
+    lines.shift();
+  }
+
+  const hasTabs = lines.some((line) => line.includes('\t'));
+
+  return lines
+    .filter((line) => line.trim() || line.includes('\t'))
+    .map((line) => {
+      if (hasTabs) {
+        return line.split('\t').map((cell) => cell.trim());
+      }
+
+      return [line.trim()];
+    });
+}
+
+function parseHtmlClipboardTable(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const table = doc.querySelector('table');
+  if (!table) {
+    return [];
+  }
+
+  return [...table.querySelectorAll('tr')]
+    .map((row) =>
+      [...row.querySelectorAll('th, td')].map((cell) => cell.textContent.replace(/\u00a0/g, ' ').trim()),
+    )
+    .filter((row) => row.length > 0);
+}
+
+function parseClipboardTable(text) {
+  const normalized = normalizeClipboardText(text);
+  if (!normalized.trim()) {
+    return [];
+  }
+
+  if (looksLikeMarkdownTable(normalized)) {
+    return trimTableRows(parseMarkdownClipboardTable(normalized));
+  }
+
+  return trimTableRows(parseDelimitedClipboardTable(normalized));
+}
+
+function buildTsvContent(rows) {
+  return rows
+    .map((row) =>
+      row
+        .map((cell) => {
+          const value = cell ?? '';
+          if (/[\t\r\n"]/.test(value)) {
+            return `"${value.replace(/"/g, '""')}"`;
+          }
+          return value;
+        })
+        .join('\t'),
+    )
+    .join('\n');
+}
+
+function getSelectionDataForCopy() {
+  const bounds = getSelectionBounds();
+  const rows = [];
+
+  for (let row = bounds.rowMin; row <= bounds.rowMax; row += 1) {
+    const rowValues = [];
+    for (let col = bounds.colMin; col <= bounds.colMax; col += 1) {
+      rowValues.push(spreadsheet.data[row][col] ?? '');
+    }
+    rows.push(rowValues);
+  }
+
+  return rows;
+}
+
+function ensureGridSize(requiredRows, requiredCols) {
+  if (requiredCols > spreadsheet.cols) {
+    const colsToAdd = requiredCols - spreadsheet.cols;
+    spreadsheet.data.forEach((row) => {
+      for (let i = 0; i < colsToAdd; i += 1) {
+        row.push('');
+      }
+    });
+    spreadsheet.cols = requiredCols;
+  }
+
+  if (requiredRows > spreadsheet.rows) {
+    for (let row = spreadsheet.rows; row < requiredRows; row += 1) {
+      spreadsheet.data.push(Array(spreadsheet.cols).fill(''));
+    }
+    spreadsheet.rows = requiredRows;
+  }
+}
+
+function pasteTableAt(startRow, startCol, table) {
+  if (!table.length) {
+    return;
+  }
+
+  const pasteRows = table.length;
+  const pasteCols = Math.max(...table.map((row) => row.length), 0);
+  const endRow = startRow + pasteRows - 1;
+  const endCol = startCol + pasteCols - 1;
+
+  ensureGridSize(endRow + 1, endCol + 1);
+  blurActiveCellInput();
+  spreadsheet.mode = 'select';
+
+  for (let row = 0; row < pasteRows; row += 1) {
+    for (let col = 0; col < pasteCols; col += 1) {
+      spreadsheet.data[startRow + row][startCol + col] = table[row][col] ?? '';
+    }
+  }
+
+  spreadsheet.anchor = { row: startRow, col: startCol };
+  spreadsheet.focus = { row: endRow, col: endCol };
+  spreadsheet.selectionKind = 'range';
+  renderGrid();
+  saveToLocalStorage();
+}
+
+async function copySelectionToClipboard() {
+  const tsv = buildTsvContent(getSelectionDataForCopy());
+  await navigator.clipboard.writeText(tsv);
+}
+
+async function pasteFromClipboard() {
+  const { row, col } = getActiveCell();
+
+  try {
+    const clipboardItems = await navigator.clipboard.read();
+    for (const item of clipboardItems) {
+      if (!item.types.includes('text/html')) {
+        continue;
+      }
+
+      const blob = await item.getType('text/html');
+      const htmlTable = parseHtmlClipboardTable(await blob.text());
+      if (htmlTable.length) {
+        pasteTableAt(row, col, htmlTable);
+        return;
+      }
+    }
+  } catch {
+    // HTML clipboard를 읽지 못하면 plain text로 시도
+  }
+
+  try {
+    const text = await navigator.clipboard.readText();
+    const table = parseClipboardTable(text);
+    if (table.length) {
+      pasteTableAt(row, col, table);
+    }
+  } catch {
+    // clipboard 접근 실패
+  }
+}
+
 function getArrowDelta(key) {
   if (key === 'ArrowUp') {
     return { row: -1, col: 0 };
@@ -1120,6 +1350,18 @@ function bindKeyboardEvents() {
     }
 
     if (spreadsheet.mode === 'edit') {
+      return;
+    }
+
+    if (isCopyShortcut(event)) {
+      event.preventDefault();
+      void copySelectionToClipboard();
+      return;
+    }
+
+    if (isPasteShortcut(event)) {
+      event.preventDefault();
+      void pasteFromClipboard();
       return;
     }
 

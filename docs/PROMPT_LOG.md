@@ -237,3 +237,23 @@ Cmd+Enter(Windows는 Ctrl+Enter)로 개행한 경우만 여러 줄, 그 외에�
 > 의도/반영: `layoutEditingInput()`로 편집 중 `position: fixed` 오버레이(최소 280px, 최대 520px). 흰 배경·파란 테두리·그림자 적용, 셀 위에 넓게 표시.
 
 ---
+
+- 프롬프트:
+
+```
+테이블 데이터 copy/paste 시 스프레드시트처럼 셀에 들어가게 하고, 행·열이 부족하면 자동 추가.
+```
+
+> 의도/반영: `Ctrl/Cmd+C` TSV 복사, `Ctrl/Cmd+V` TSV 붙여넣기(`parseClipboardTable`). 활성 셀 기준으로 채우고 `ensureGridSize`로 행·열 자동 확장 후 선택 범위 갱신.
+
+---
+
+- 프롬프트:
+
+```
+엑셀·구글 시트에서 복사한 표(탭 구분·마크다운 표)를 붙여넣으면 셀에 그대로 들어가게 해줘.
+```
+
+> 의도/반영: 클립보드 `text/html` 테이블 파싱(시트 복사 우선). plain text는 탭 구분(TSV) 및 `|` 마크다운 표 파싱, 구분선 행 스킵, 셀 trim·BOM 제거.
+
+---
