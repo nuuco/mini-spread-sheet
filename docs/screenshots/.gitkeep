@@ -1,0 +1,6 @@
+# 스크린샷 저장 폴더
+
+앱 실행 화면 캡처 및 Google Sheets Import 검증 캡처를 이 폴더에 저장하세요.
+
+- `app-screenshot.png` — 실행 중 스프레드시트 화면
+- `google-sheets-import.png` — CSV Import 후 Google Sheets 화면
