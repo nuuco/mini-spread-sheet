@@ -64,8 +64,24 @@ export class SpreadsheetApp {
     this.bindGlobalEvents();
   }
 
+  finishTitleEditIfActive() {
+    if (this.titleEditor.isEditing()) {
+      this.titleEditor.finishEdit(false);
+    }
+  }
+
   bindGlobalEvents() {
     this.refs.exportBtn?.addEventListener('click', () => this.export());
+
+    document.addEventListener(
+      'mousedown',
+      (event) => {
+        if (this.titleEditor.isEditing() && !event.target.closest('#sheet-title-wrap')) {
+          this.titleEditor.finishEdit(false);
+        }
+      },
+      true,
+    );
 
     document.addEventListener('mousemove', (event) => this.handleDocumentMouseMove(event));
     document.addEventListener('mouseup', () => this.endDragSelection());
@@ -308,12 +324,15 @@ export class SpreadsheetApp {
   }
 
   selectEntireSheet() {
+    this.finishTitleEditIfActive();
     this.model.selectEntireSheet();
     this.blurActiveCellInput();
     this.refreshSelectionUI();
   }
 
   beginDragSelection(kind, row, col, extend = false) {
+    this.finishTitleEditIfActive();
+
     const { model } = this;
 
     if (kind === 'cell') {

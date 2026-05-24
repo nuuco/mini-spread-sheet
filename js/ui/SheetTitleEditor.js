@@ -108,8 +108,12 @@ export class SheetTitleEditor {
     this.syncFromModel();
   }
 
+  isEditing() {
+    return Boolean(this.wrap?.classList.contains('is-editing'));
+  }
+
   readFromFieldIfEditing() {
-    if (this.wrap?.classList.contains('is-editing')) {
+    if (this.isEditing()) {
       this.model.title = this.enforceLength();
     }
   }

@@ -27,3 +27,4 @@
 - 선택 모드 Enter: 편집 모드 진입 (편집 중 Enter는 아래 셀 이동 유지)
 - 편집 오버레이: 짧은 텍스트는 셀 크기, 긴 텍스트·여러 줄일 때만 확장
 - 파비콘: favicon.svg/png/ico 추가, index.html link 태그 연결 (앱 테마 그리드 아이콘)
+- 시트 제목 편집: 그리드·모서리 클릭 시 제목 편집 종료 (셀 mousedown preventDefault로 blur 막힘 보완)

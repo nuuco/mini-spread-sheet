@@ -459,3 +459,13 @@ GridRenderer model.cols undefined 오류 / 파비콘·모서리칸 README·AGENT
 > 의도/반영: `render()`에서 `const { model } = app` 수정. README 모서리 칸(헤더 교차 빈 칸) 전체 선택 문구 보강. AGENTS·PROMPT_LOG에 파비콘·후속 수정 기록.
 
 ---
+
+- 프롬프트:
+
+```
+제목 인풋 포커즈아웃되면 편집모드 풀리는거 맞아? 셀 클릭해도 편집모드가 유지되고 있어.
+```
+
+> 의도/반영: blur 시 `finishEdit()`로 제목 편집 종료는 맞음. 셀 `mousedown`의 `preventDefault()` 때문에 blur가 안 뜨는 경우 보완 — `finishTitleEditIfActive()`·제목 영역 밖 capture `mousedown`·`beginDragSelection`/`selectEntireSheet` 진입 시 제목 편집 저장 후 종료.
+
+---
