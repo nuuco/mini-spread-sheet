@@ -25,3 +25,4 @@
 - GridRenderer.render 버그 수정: model을 this가 아닌 app.model에서 참조
 - Export 빈 제목: 파일명·시트탭에 제목없음 사용 (spreadsheet/Sheet1 fallback 제거)
 - 선택 모드 Enter: 편집 모드 진입 (편집 중 Enter는 아래 셀 이동 유지)
+- 편집 오버레이: 짧은 텍스트는 셀 크기, 긴 텍스트·여러 줄일 때만 확장

@@ -1,6 +1,10 @@
 import { columnIndexToLabel, formatCellAddress } from '../utils/cellAddress.js';
 import { isNewlineShortcut } from '../utils/keyboard.js';
-import { EDITING_INPUT_MAX_WIDTH, EDITING_INPUT_MIN_WIDTH } from '../constants.js';
+import {
+  EDITING_INPUT_EXPAND_PADDING,
+  EDITING_INPUT_MAX_HEIGHT,
+  EDITING_INPUT_MAX_WIDTH,
+} from '../constants.js';
 
 export class GridRenderer {
   constructor(app) {
@@ -29,19 +33,89 @@ export class GridRenderer {
     input.style.zIndex = '';
   }
 
+  static measureTextWidth(input, text) {
+    const style = window.getComputedStyle(input);
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) {
+      return text.length * 8;
+    }
+    context.font = `${style.fontStyle} ${style.fontVariant} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    return context.measureText(text).width;
+  }
+
+  static longestLineWidth(input, value) {
+    if (!value) {
+      return 0;
+    }
+    return value
+      .split('\n')
+      .reduce((max, line) => Math.max(max, GridRenderer.measureTextWidth(input, line)), 0);
+  }
+
+  static measureMultilineHeight(input, width, minHeight) {
+    const previous = {
+      position: input.style.position,
+      visibility: input.style.visibility,
+      width: input.style.width,
+      height: input.style.height,
+      minHeight: input.style.minHeight,
+      maxHeight: input.style.maxHeight,
+    };
+
+    input.style.position = 'absolute';
+    input.style.visibility = 'hidden';
+    input.style.width = `${width}px`;
+    input.style.height = 'auto';
+    input.style.minHeight = '0';
+    input.style.maxHeight = `${EDITING_INPUT_MAX_HEIGHT}px`;
+
+    const height = Math.min(
+      Math.max(input.scrollHeight, minHeight),
+      EDITING_INPUT_MAX_HEIGHT,
+    );
+
+    input.style.position = previous.position;
+    input.style.visibility = previous.visibility;
+    input.style.width = previous.width;
+    input.style.height = previous.height;
+    input.style.minHeight = previous.minHeight;
+    input.style.maxHeight = previous.maxHeight;
+
+    return height;
+  }
+
   static layoutEditingInput(input, cell) {
     const cellRect = cell.getBoundingClientRect();
     const spaceToRight = window.innerWidth - cellRect.left - 24;
-    const desiredWidth = Math.max(cellRect.width + 160, EDITING_INPUT_MIN_WIDTH);
-    const width = Math.min(desiredWidth, EDITING_INPUT_MAX_WIDTH, spaceToRight);
+    const value = input.value ?? '';
+    const isMultiline = value.includes('\n');
+    const contentWidth = GridRenderer.longestLineWidth(input, value);
+    const needsWider =
+      contentWidth + EDITING_INPUT_EXPAND_PADDING > cellRect.width;
+
+    let width = cellRect.width;
+    if (needsWider) {
+      width = Math.min(
+        Math.max(cellRect.width, contentWidth + EDITING_INPUT_EXPAND_PADDING),
+        EDITING_INPUT_MAX_WIDTH,
+        spaceToRight,
+      );
+    }
+
+    let height = cellRect.height;
+    if (isMultiline) {
+      height = GridRenderer.measureMultilineHeight(input, width, cellRect.height);
+    }
 
     input.style.position = 'fixed';
     input.style.left = `${cellRect.left}px`;
     input.style.top = `${cellRect.top}px`;
-    input.style.width = `${Math.max(width, cellRect.width)}px`;
-    input.style.minHeight = `${cellRect.height}px`;
+    input.style.width = `${width}px`;
+    input.style.minHeight = `${height}px`;
+    input.style.height = isMultiline ? `${height}px` : `${cellRect.height}px`;
     input.style.zIndex = '200';
-    input.style.maxHeight = input.classList.contains('multiline') ? '160px' : `${cellRect.height}px`;
+    input.style.maxHeight = isMultiline ? `${EDITING_INPUT_MAX_HEIGHT}px` : `${cellRect.height}px`;
   }
 
   static insertNewlineAtCursor(field) {
