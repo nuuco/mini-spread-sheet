@@ -227,3 +227,13 @@ Cmd+Enter(Windows는 Ctrl+Enter)로 개행한 경우만 여러 줄, 그 외에�
 > 의도/반영: 개행 단축키 `metaKey || ctrlKey` 통일. `.cell-input` 기본 `nowrap`, `\n` 있을 때만 `.multiline`·`pre-wrap`. 붙여넣기 줄바꿈은 공백으로 변환.
 
 ---
+
+- 프롬프트:
+
+```
+편집 모드일 때 input이 셀보다 넓게 위에 보이게 해줘.
+```
+
+> 의도/반영: `layoutEditingInput()`로 편집 중 `position: fixed` 오버레이(최소 280px, 최대 520px). 흰 배경·파란 테두리·그림자 적용, 셀 위에 넓게 표시.
+
+---

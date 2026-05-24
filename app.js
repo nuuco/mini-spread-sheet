@@ -132,6 +132,35 @@ function getActiveCell() {
   return { row: spreadsheet.focus.row, col: spreadsheet.focus.col };
 }
 
+const EDITING_INPUT_MIN_WIDTH = 280;
+const EDITING_INPUT_MAX_WIDTH = 520;
+
+function resetEditingInputLayout(input) {
+  input.style.position = '';
+  input.style.left = '';
+  input.style.top = '';
+  input.style.width = '';
+  input.style.minWidth = '';
+  input.style.minHeight = '';
+  input.style.maxHeight = '';
+  input.style.zIndex = '';
+}
+
+function layoutEditingInput(input, cell) {
+  const cellRect = cell.getBoundingClientRect();
+  const spaceToRight = window.innerWidth - cellRect.left - 24;
+  const desiredWidth = Math.max(cellRect.width + 160, EDITING_INPUT_MIN_WIDTH);
+  const width = Math.min(desiredWidth, EDITING_INPUT_MAX_WIDTH, spaceToRight);
+
+  input.style.position = 'fixed';
+  input.style.left = `${cellRect.left}px`;
+  input.style.top = `${cellRect.top}px`;
+  input.style.width = `${Math.max(width, cellRect.width)}px`;
+  input.style.minHeight = `${cellRect.height}px`;
+  input.style.zIndex = '200';
+  input.style.maxHeight = input.classList.contains('multiline') ? '160px' : `${cellRect.height}px`;
+}
+
 function getCellInput(row, col) {
   return document.querySelector(
     `.cell[data-row="${row}"][data-col="${col}"] .cell-input`,
@@ -168,6 +197,11 @@ function syncInputEditState() {
     if (input) {
       input.readOnly = !editing;
       updateCellInputLayout(input);
+      if (editing) {
+        layoutEditingInput(input, cell);
+      } else {
+        resetEditingInputLayout(input);
+      }
     }
   });
 }
@@ -345,8 +379,12 @@ function enterEditMode(row, col) {
   updateSelectionUI();
 
   const input = getCellInput(row, col);
+  const cell = input?.closest('.cell');
   input?.focus();
   input?.select();
+  if (input && cell) {
+    layoutEditingInput(input, cell);
+  }
 }
 
 function startTypingInActiveCell(char) {
@@ -366,6 +404,12 @@ function startTypingInActiveCell(char) {
   updateSelectionUI();
   input?.focus();
   input?.setSelectionRange(char.length, char.length);
+  if (input) {
+    const cell = input.closest('.cell');
+    if (cell) {
+      layoutEditingInput(input, cell);
+    }
+  }
   scheduleSaveToLocalStorage();
 }
 
@@ -599,6 +643,9 @@ function bindCellEvents(input, cell, row, col) {
   input.addEventListener('input', (event) => {
     updateCellInputLayout(event.target);
     onCellInput(row, col, event.target.value);
+    if (cell.classList.contains('editing')) {
+      layoutEditingInput(event.target, cell);
+    }
   });
 
   input.addEventListener('paste', (event) => {
