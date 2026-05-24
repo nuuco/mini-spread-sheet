@@ -9,7 +9,7 @@
 <body>
   <main class="app">
     <header class="toolbar">
-      <div class="toolbar-body">
+      <div class="toolbar-row toolbar-row-title">
         <div class="sheet-title-wrap" id="sheet-title-wrap">
           <button
             type="button"
@@ -28,12 +28,12 @@
             aria-label="시트 제목"
           />
         </div>
-        <div class="toolbar-meta">
-          <span id="cell-coordinate" class="cell-coordinate">Cell: A1</span>
-          <span id="grid-size-label" class="grid-size-label">5행 × 5열</span>
-        </div>
+        <button id="export-btn" type="button" class="export-btn">Export Excel</button>
       </div>
-      <button id="export-btn" type="button" class="export-btn">Export Excel</button>
+      <div class="toolbar-row toolbar-row-meta">
+        <span id="cell-coordinate" class="cell-coordinate">Cell: A1</span>
+        <span id="grid-size-label" class="grid-size-label">5행 × 5열</span>
+      </div>
     </header>
 
     <section class="grid-wrapper">
