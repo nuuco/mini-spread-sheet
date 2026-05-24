@@ -132,6 +132,15 @@ body {
   outline: none;
 }
 
+.cell-input[readonly] {
+  cursor: default;
+  pointer-events: none;
+}
+
+.cell.editing .cell-input {
+  cursor: text;
+}
+
 .controls {
   display: flex;
   flex-wrap: wrap;

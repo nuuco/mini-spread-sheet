@@ -67,3 +67,13 @@
 > 의도/반영: `updateCellSelection()`에 `highlight-row`·`highlight-col` 클래스 토글 추가. `style.css`에서 해당 행·열 셀 `#e8f4fc`, 선택 셀 `#cce8f9` 하늘색 배경 적용.
 
 ---
+
+- 프롬프트:
+
+```
+셀 한 번 클릭은 선택 모드, 선택 상태에서 Backspace면 내용 삭제, 같은 셀을 한 번 더 클릭하면 편집 모드로 텍스트 수정.
+```
+
+> 의도/반영: `spreadsheet.mode`(select/edit) 분리. 1클릭 `enterSelectMode`(input readonly), 동일 셀 2클릭 `enterEditMode`(input focus). 선택 모드에서 Backspace 시 `clearSelectedCellContent()`. readonly input은 `pointer-events: none`으로 셀 클릭 처리.
+
+---

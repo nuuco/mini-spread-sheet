@@ -11,6 +11,7 @@ let spreadsheet = {
   cols: CONFIG.defaultCols,
   data: [],
   focus: { row: 0, col: 0 },
+  mode: 'select',
 };
 
 let saveTimer = null;
@@ -42,18 +43,66 @@ function clampFocus() {
   spreadsheet.focus.col = Math.max(spreadsheet.focus.col, 0);
 }
 
-function setFocus(row, col, shouldFocusInput = false) {
+function getCellInput(row, col) {
+  return document.querySelector(
+    `.cell[data-row="${row}"][data-col="${col}"] .cell-input`,
+  );
+}
+
+function setFocus(row, col) {
   spreadsheet.focus = { row, col };
   updateCoordinateDisplay();
   updateHeaderHighlights();
   updateCellSelection();
+}
 
-  if (shouldFocusInput) {
-    const input = document.querySelector(
-      `.cell[data-row="${row}"][data-col="${col}"] .cell-input`,
-    );
-    input?.focus();
+function syncInputEditState() {
+  const { row, col } = spreadsheet.focus;
+  const isEditing = spreadsheet.mode === 'edit';
+
+  document.querySelectorAll('.cell').forEach((cell) => {
+    const cellRow = Number(cell.dataset.row);
+    const cellCol = Number(cell.dataset.col);
+    const editing = isEditing && cellRow === row && cellCol === col;
+
+    cell.classList.toggle('editing', editing);
+    const input = cell.querySelector('.cell-input');
+    if (input) {
+      input.readOnly = !editing;
+    }
+  });
+}
+
+function enterSelectMode(row, col) {
+  if (document.activeElement?.classList.contains('cell-input')) {
+    document.activeElement.blur();
   }
+
+  spreadsheet.mode = 'select';
+  setFocus(row, col);
+  syncInputEditState();
+}
+
+function enterEditMode(row, col) {
+  spreadsheet.mode = 'edit';
+  setFocus(row, col);
+  syncInputEditState();
+
+  const input = getCellInput(row, col);
+  input?.focus();
+  input?.select();
+}
+
+function clearSelectedCellContent() {
+  const { row, col } = spreadsheet.focus;
+  spreadsheet.data[row][col] = '';
+
+  const input = getCellInput(row, col);
+  if (input) {
+    input.value = '';
+  }
+
+  saveToLocalStorage();
 }
 
 function updateCoordinateDisplay() {
@@ -136,9 +185,27 @@ function loadFromLocalStorage() {
 }
 
 function bindCellEvents(input, cell, row, col) {
-  input.addEventListener('focus', () => setFocus(row, col));
   input.addEventListener('input', (event) => onCellInput(row, col, event.target.value));
-  cell.addEventListener('click', () => setFocus(row, col, true));
+  input.addEventListener('blur', () => {
+    if (
+      spreadsheet.mode === 'edit' &&
+      spreadsheet.focus.row === row &&
+      spreadsheet.focus.col === col
+    ) {
+      spreadsheet.mode = 'select';
+      syncInputEditState();
+    }
+  });
+
+  cell.addEventListener('click', () => {
+    const isSameCell = spreadsheet.focus.row === row && spreadsheet.focus.col === col;
+
+    if (isSameCell && spreadsheet.mode === 'select') {
+      enterEditMode(row, col);
+    } else {
+      enterSelectMode(row, col);
+    }
+  });
 }
 
 function renderGrid() {
@@ -192,7 +259,7 @@ function renderGrid() {
 
   container.replaceChildren(table);
   clampFocus();
-  setFocus(spreadsheet.focus.row, spreadsheet.focus.col, true);
+  enterSelectMode(spreadsheet.focus.row, spreadsheet.focus.col);
 }
 
 function collectSpreadsheetData() {
@@ -266,6 +333,25 @@ function removeColumn() {
   saveToLocalStorage();
 }
 
+function bindKeyboardEvents() {
+  document.addEventListener('keydown', (event) => {
+    if (spreadsheet.mode !== 'select') {
+      return;
+    }
+
+    if (event.key !== 'Backspace') {
+      return;
+    }
+
+    if (event.target.closest('.controls') || event.target.closest('.toolbar')) {
+      return;
+    }
+
+    event.preventDefault();
+    clearSelectedCellContent();
+  });
+}
+
 function bindToolbarEvents() {
   document.getElementById('export-btn').addEventListener('click', exportSpreadsheet);
   document.getElementById('add-row-btn').addEventListener('click', addRow);
@@ -278,6 +364,7 @@ function initSpreadsheet() {
   loadFromLocalStorage();
   renderGrid();
   bindToolbarEvents();
+  bindKeyboardEvents();
 }
 
 document.addEventListener('DOMContentLoaded', initSpreadsheet);
