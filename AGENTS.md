@@ -8,3 +8,4 @@
 - style.css 작성: 목업 기반 그리드·헤더·선택 셀·Export 버튼 스타일
 - 문서 작성: README.md, PROMPT_LOG.md, 디렉터리 구조(screenshots, exports)
 - 붙여넣기 개선: HTML 테이블·TSV·마크다운 표 파싱, 구분선 행 스킵
+- 실행 취소/다시 실행: undo/redo 스택, Cmd/Ctrl+Z·Shift+Z·Ctrl+Y 단축키

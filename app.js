@@ -17,6 +17,14 @@ let spreadsheet = {
 };
 
 let saveTimer = null;
+let editUndoRecorded = false;
+
+const MAX_UNDO_STACK = 100;
+
+const history = {
+  undoStack: [],
+  redoStack: [],
+};
 
 const dragSelection = {
   active: false,
@@ -372,6 +380,7 @@ function enterEditMode(row, col) {
     return;
   }
 
+  editUndoRecorded = false;
   spreadsheet.mode = 'edit';
   spreadsheet.anchor = { row, col };
   spreadsheet.focus = { row, col };
@@ -389,6 +398,9 @@ function enterEditMode(row, col) {
 
 function startTypingInActiveCell(char) {
   const { row, col } = getActiveCell();
+
+  pushUndoSnapshot();
+  editUndoRecorded = true;
 
   spreadsheet.anchor = { row, col };
   spreadsheet.focus = { row, col };
@@ -431,6 +443,109 @@ function isCopyShortcut(event) {
 
 function isPasteShortcut(event) {
   return (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'v' && !event.shiftKey;
+}
+
+function isUndoShortcut(event) {
+  return (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && !event.shiftKey;
+}
+
+function isRedoShortcut(event) {
+  if (!(event.metaKey || event.ctrlKey)) {
+    return false;
+  }
+
+  const key = event.key.toLowerCase();
+  return (key === 'z' && event.shiftKey) || (key === 'y' && !event.shiftKey);
+}
+
+function cloneSpreadsheetSnapshot() {
+  return {
+    rows: spreadsheet.rows,
+    cols: spreadsheet.cols,
+    data: spreadsheet.data.map((row) => [...row]),
+  };
+}
+
+function snapshotsEqual(a, b) {
+  if (a.rows !== b.rows || a.cols !== b.cols) {
+    return false;
+  }
+
+  return a.data.every((row, rowIndex) =>
+    row.every((cell, colIndex) => cell === b.data[rowIndex][colIndex]),
+  );
+}
+
+function pushUndoSnapshot() {
+  const snapshot = cloneSpreadsheetSnapshot();
+  const top = history.undoStack[history.undoStack.length - 1];
+
+  if (top && snapshotsEqual(top, snapshot)) {
+    return;
+  }
+
+  history.undoStack.push(snapshot);
+  if (history.undoStack.length > MAX_UNDO_STACK) {
+    history.undoStack.shift();
+  }
+
+  history.redoStack = [];
+}
+
+function applySpreadsheetSnapshot(snapshot) {
+  spreadsheet.rows = snapshot.rows;
+  spreadsheet.cols = snapshot.cols;
+  spreadsheet.data = snapshot.data.map((row) => [...row]);
+  spreadsheet.mode = 'select';
+  editUndoRecorded = false;
+  clampSelection();
+  renderGrid();
+  saveToLocalStorage();
+}
+
+function syncActiveCellFromInput() {
+  if (spreadsheet.mode !== 'edit') {
+    return;
+  }
+
+  const { row, col } = getActiveCell();
+  const input = getCellInput(row, col);
+  if (input) {
+    spreadsheet.data[row][col] = input.value;
+  }
+}
+
+function ensureEditUndoSnapshot() {
+  if (editUndoRecorded) {
+    return;
+  }
+
+  pushUndoSnapshot();
+  editUndoRecorded = true;
+}
+
+function undoSpreadsheet() {
+  if (!history.undoStack.length) {
+    return false;
+  }
+
+  syncActiveCellFromInput();
+  blurActiveCellInput();
+  history.redoStack.push(cloneSpreadsheetSnapshot());
+  applySpreadsheetSnapshot(history.undoStack.pop());
+  return true;
+}
+
+function redoSpreadsheet() {
+  if (!history.redoStack.length) {
+    return false;
+  }
+
+  syncActiveCellFromInput();
+  blurActiveCellInput();
+  history.undoStack.push(cloneSpreadsheetSnapshot());
+  applySpreadsheetSnapshot(history.redoStack.pop());
+  return true;
 }
 
 function normalizeClipboardText(text) {
@@ -596,6 +711,8 @@ function pasteTableAt(startRow, startCol, table) {
     return;
   }
 
+  pushUndoSnapshot();
+
   const pasteRows = table.length;
   const pasteCols = Math.max(...table.map((row) => row.length), 0);
   const endRow = startRow + pasteRows - 1;
@@ -692,6 +809,7 @@ function moveActiveCellBy(deltaRow, deltaCol, extend = false) {
 }
 
 function clearSelectedCellContent() {
+  pushUndoSnapshot();
   const bounds = getSelectionBounds();
 
   for (let row = bounds.rowMin; row <= bounds.rowMax; row += 1) {
@@ -781,6 +899,7 @@ function updateCellSelection() {
 }
 
 function onCellInput(row, col, value) {
+  ensureEditUndoSnapshot();
   spreadsheet.data[row][col] = value;
   scheduleSaveToLocalStorage();
 }
@@ -859,6 +978,7 @@ function finishEditAndMoveDown(row, col) {
     onCellInput(row, col, input.value);
   }
 
+  editUndoRecorded = false;
   spreadsheet.mode = 'select';
   blurActiveCellInput();
 
@@ -907,6 +1027,7 @@ function bindCellEvents(input, cell, row, col) {
       spreadsheet.focus.row === row &&
       spreadsheet.focus.col === col
     ) {
+      editUndoRecorded = false;
       spreadsheet.mode = 'select';
       syncInputEditState();
     }
@@ -1062,6 +1183,7 @@ function insertRowAt(index) {
 }
 
 function insertRowsAt(index, count) {
+  pushUndoSnapshot();
   const newRows = Array.from({ length: count }, () => Array(spreadsheet.cols).fill(''));
   spreadsheet.data.splice(index, 0, ...newRows);
   spreadsheet.rows += count;
@@ -1097,6 +1219,7 @@ function deleteRowAt(index) {
     return;
   }
 
+  pushUndoSnapshot();
   spreadsheet.data.splice(index, 1);
   spreadsheet.rows -= 1;
   clampSelection();
@@ -1110,6 +1233,7 @@ function deleteSelectedRows() {
     return;
   }
 
+  pushUndoSnapshot();
   const bounds = getSelectionBounds();
   const deleteCount = bounds.rowMax - bounds.rowMin + 1;
 
@@ -1134,6 +1258,7 @@ function insertColumnAt(index) {
 }
 
 function insertColumnsAt(index, count) {
+  pushUndoSnapshot();
   spreadsheet.data.forEach((row) => {
     row.splice(index, 0, ...Array(count).fill(''));
   });
@@ -1170,6 +1295,7 @@ function deleteColumnAt(index) {
     return;
   }
 
+  pushUndoSnapshot();
   spreadsheet.data.forEach((row) => row.splice(index, 1));
   spreadsheet.cols -= 1;
   clampSelection();
@@ -1183,6 +1309,7 @@ function deleteSelectedColumns() {
     return;
   }
 
+  pushUndoSnapshot();
   const bounds = getSelectionBounds();
   const deleteCount = bounds.colMax - bounds.colMin + 1;
 
@@ -1346,6 +1473,18 @@ function bindContextMenuEvents() {
 function bindKeyboardEvents() {
   document.addEventListener('keydown', (event) => {
     if (!isGridKeyboardTarget(event)) {
+      return;
+    }
+
+    if (isUndoShortcut(event)) {
+      event.preventDefault();
+      undoSpreadsheet();
+      return;
+    }
+
+    if (isRedoShortcut(event)) {
+      event.preventDefault();
+      redoSpreadsheet();
       return;
     }
 
