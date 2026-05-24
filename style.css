@@ -1,3 +1,41 @@
+:root {
+  --color-bg-app: #e9edf2;
+  --color-bg-surface: #ffffff;
+  --color-bg-muted: #f0f6ff;
+  --color-bg-header: #edf4ff;
+  --color-bg-header-hover: #dce9ff;
+
+  --color-border: #b8cce8;
+  --color-border-subtle: #d4e3f7;
+
+  --color-text: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
+  --color-text-inverse: #ffffff;
+
+  --color-accent: #3b82f6;
+  --color-accent-strong: #4183e8;
+  --color-accent-soft: #dbeafe;
+  --color-accent-muted: #bfdbfe;
+  --color-accent-ring: rgba(37, 99, 235, 0.4);
+
+  --color-selection: #e0efff;
+  --color-selection-hover: #cce4ff;
+  --color-active-cell: #b8d9ff;
+
+  --color-action: #16a34a;
+  --color-action-hover: #15803d;
+
+  --color-danger: #dc2626;
+  --color-danger-bg: #fee2e2;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --shadow-surface: 0 1px 2px rgba(37, 99, 235, 0.06), 0 8px 24px rgba(37, 99, 235, 0.1);
+  --shadow-edit: 0 4px 20px rgba(37, 99, 235, 0.22);
+  --shadow-menu: 0 8px 28px rgba(15, 23, 42, 0.12);
+}
+
 *,
 *::before,
 *::after {
@@ -8,8 +46,8 @@ body {
   margin: 0;
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #d6e4f0;
-  color: #1a1a1a;
+  background: var(--color-bg-app);
+  color: var(--color-text);
 }
 
 .app {
@@ -17,7 +55,7 @@ body {
   min-height: 100vh;
   margin: 0;
   padding: 24px 32px;
-  background: #d6e4f0;
+  background: var(--color-bg-app);
 }
 
 .toolbar {
@@ -60,14 +98,14 @@ body {
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.25;
-  color: #1a202c;
+  color: var(--color-text);
   cursor: text;
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   outline: none;
-  caret-color: #2b6cb0;
+  caret-color: var(--color-accent);
   transition: color 0.15s ease;
 }
 
@@ -79,7 +117,7 @@ body {
   bottom: 2px;
   height: 2px;
   border-radius: 1px;
-  background: linear-gradient(90deg, #4a90d9, #63b3ed);
+  background: linear-gradient(90deg, var(--color-accent-strong), #60a5fa);
   transform: scaleX(0);
   transform-origin: left center;
   opacity: 0;
@@ -95,31 +133,31 @@ body {
 }
 
 .sheet-title-wrap.is-empty:not(.is-editing) .sheet-title-field {
-  color: #718096;
+  color: var(--color-text-muted);
   font-weight: 600;
 }
 
 .sheet-title-field:empty::before {
   content: attr(data-placeholder);
-  color: #718096;
+  color: var(--color-text-muted);
   font-weight: 600;
   pointer-events: none;
 }
 
 .sheet-title-wrap:not(.is-editing) .sheet-title-field:hover {
-  color: #0f172a;
+  color: var(--color-text);
 }
 
 .sheet-title-wrap.is-editing .sheet-title-field {
   overflow: hidden;
   text-overflow: clip;
-  color: #0f172a;
+  color: var(--color-text);
   padding-bottom: 10px;
   line-height: 1.25;
 }
 
 .sheet-title-wrap.is-editing .sheet-title-field:empty::before {
-  color: #a0aec0;
+  color: var(--color-text-secondary);
   font-weight: 600;
 }
 
@@ -127,7 +165,7 @@ body {
   padding-left: 12px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #4a5568;
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
@@ -135,7 +173,7 @@ body {
   flex-shrink: 0;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #4a5568;
+  color: var(--color-text-secondary);
   white-space: nowrap;
   text-align: right;
 }
@@ -144,24 +182,30 @@ body {
   flex-shrink: 0;
   padding: 10px 18px;
   border: none;
-  border-radius: 6px;
-  background: #2eaa4a;
-  color: #fff;
+  border-radius: var(--radius-sm);
+  background: var(--color-action);
+  color: var(--color-text-inverse);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease;
+  box-shadow: 0 1px 2px rgba(20, 24, 31, 0.06);
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .export-btn:hover {
-  background: #24903d;
+  background: var(--color-action-hover);
+  box-shadow: 0 2px 10px rgba(22, 163, 74, 0.35);
 }
 
 .grid-wrapper {
   overflow-x: auto;
-  background: #fff;
-  border-radius: 6px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   padding: 4px;
+  box-shadow: var(--shadow-surface);
 }
 
 .grid-table {
@@ -172,7 +216,7 @@ body {
 
 .grid-table th,
 .grid-table td {
-  border: 1px solid #b8c8d8;
+  border: 1px solid var(--color-border);
   padding: 0;
   text-align: center;
 }
@@ -180,22 +224,27 @@ body {
 .corner-header {
   width: 48px;
   min-width: 48px;
-  background: #eef3f8;
+  background: var(--color-bg-header);
   cursor: pointer;
+  transition: background 0.12s ease;
 }
 
 .corner-header:hover {
-  background: #dceefa;
+  background: var(--color-bg-header-hover);
 }
 
 .col-header,
 .row-header {
-  background: #eef3f8;
-  color: #333;
+  background: var(--color-bg-header);
+  color: var(--color-text-secondary);
   font-weight: 600;
+  font-size: 0.8125rem;
   height: 36px;
   user-select: none;
   cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
 
 .row-header {
@@ -205,41 +254,41 @@ body {
 
 .col-header.active,
 .row-header.active {
-  background: #1e4d8c;
-  color: #fff;
+  background: var(--color-accent-strong);
+  color: var(--color-text-inverse);
 }
 
 .cell {
   height: 36px;
-  background: #fff;
+  background: var(--color-bg-surface);
   transition: background 0.1s ease;
 }
 
 .cell:hover {
-  background: #f5f9fc;
+  background: var(--color-bg-muted);
 }
 
 .cell.in-selection {
-  background: #e8f4fc;
+  background: var(--color-selection);
 }
 
 .cell.in-selection:hover {
-  background: #dceefa;
+  background: var(--color-selection-hover);
 }
 
 .cell.highlight-row,
 .cell.highlight-col {
-  background: #e8f4fc;
+  background: var(--color-selection);
 }
 
 .cell.highlight-row:hover,
 .cell.highlight-col:hover {
-  background: #dceefa;
+  background: var(--color-selection-hover);
 }
 
 .cell.active-cell {
-  background: #cce8f9;
-  outline: 2px solid #1e4d8c;
+  background: var(--color-active-cell);
+  outline: 2px solid var(--color-accent-strong);
   outline-offset: -2px;
   z-index: 1;
   position: relative;
@@ -251,6 +300,7 @@ body {
   border: none;
   padding: 0 2px;
   font: inherit;
+  color: var(--color-text);
   background: transparent;
   outline: none;
   resize: none;
@@ -279,9 +329,9 @@ body {
 
 .cell.editing .cell-input {
   cursor: text;
-  background: #fff;
-  border: 2px solid #1e4d8c;
-  box-shadow: 0 4px 16px rgba(30, 77, 140, 0.18);
+  background: var(--color-bg-surface);
+  border: 2px solid var(--color-accent-strong);
+  box-shadow: var(--shadow-edit);
   padding: 0 6px;
   text-overflow: clip;
 }
@@ -315,10 +365,10 @@ body.is-dragging .col-header {
   margin: 0;
   padding: 4px 0;
   list-style: none;
-  background: #fff;
-  border: 1px solid #b8c8d8;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-menu);
 }
 
 .context-menu.hidden {
@@ -333,15 +383,17 @@ body.is-dragging .col-header {
   background: transparent;
   font: inherit;
   font-size: 0.9rem;
+  color: var(--color-text);
   text-align: left;
   cursor: pointer;
+  transition: background 0.1s ease;
 }
 
 .context-menu button:hover {
-  background: #eef3f8;
+  background: var(--color-bg-muted);
 }
 
 .context-menu button.danger:hover {
-  background: #fde8e8;
-  color: #c53030;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }

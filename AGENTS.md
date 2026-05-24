@@ -31,3 +31,6 @@
 - 셀 textarea: id·name 속성 추가 (폼 필드 접근성 경고 해소)
 - 편집 종료 시 텍스트 선택 해제: 다른 셀 클릭·blur 시 collapseInputSelection·exitEditMode로 이전 셀 select 잔상 제거
 - 초기·새로고침 선택 없음: selectionKind `none`, 좌표 `—`, 그리드 밖 클릭 시 clearCellSelection
+- UI 컬러 리파인: CSS 변수 팔레트(슬레이트 블루·뮤트 그린), 그리드 그림자·보더, favicon.svg 톤 통일
+- UI 채도 상향: 블루 액센트(#2563eb)·하늘 배경·선택 하이라이트·선명 그린 Export, favicon 동기화
+- 앱 배경만 조정: `--color-bg-app` → 밝은 푸른 회색 `#e9edf2`

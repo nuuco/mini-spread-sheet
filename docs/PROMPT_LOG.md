@@ -489,3 +489,13 @@ GridRenderer model.cols undefined 오류 / 파비콘·모서리칸 README·AGENT
 > 의도/반영: 기본·로드 후 A1 자동 선택 제거. `SpreadsheetModel`에 `selectionKind: 'none'`·`hasSelection()`·`clearSelection()` 추가, `getSelectionBounds` 등 선택 API는 none 시 빈 처리. `init()`에서 선택 해제·좌표 `—` 표시. `#spreadsheet` 밖 왼쪽 클릭 시 `clearCellSelection()`(편집 종료·하이라이트 제거). 선택 없을 때 방향키는 A1부터 이동, 붙여넣기는 A1 기준, Backspace·Enter·타이핑·복사는 무시. `index.html` 초기 좌표 `—`. AGENTS.md 작업 이력 반영.
 
 ---
+
+- 프롬프트:
+
+```
+전체적으로 컬러를 좀 더 세련되게 / 채도 높게(너무 칙칙함) / 배경만 밝은 회색(살짝 푸른끼) / 셀 강조색(--color-accent-strong)만 살짝 밝고 채도 낮게
+```
+
+> 의도/반영: `style.css`에 `:root` CSS 변수 팔레트 도입 — 1차 슬레이트·뮤트 톤, 2차 피드백 반영해 블루 액센트·선택 하이라이트·`#16a34a` Export·그리드 섀도우 등 채도 상향, 3차 앱 배경만 `#e9edf2`(밝은 푸른 회색)로 조정·그리드·버튼 색은 유지, 4차 `--color-accent-strong`만 `#2563eb` → `#4183e8`(활성 헤더·선택 셀·편집 테두리, 채도 소폭↓·밝기↑). 제목 밑줄 그라데이션·컨텍스트 메뉴·편집 셀 테두리 통일. `favicon.svg` 액센트색 동기화. AGENTS.md 작업 이력 반영.
+
+---
