@@ -359,3 +359,43 @@ export 할 때 시트 데이터에 제목이 들어갈 필요는 없어.
 > 의도/반영: `sanitizeTitleForExport` — 제어문자·`\ / : * ? " < > | [ ]` 제거, 공백→`_`, 연속·양끝 `_`·`.` 정리 후 파일명(80자)·시트명(31자).
 
 ---
+
+- 프롬프트:
+
+```
+PRD, SRD, TRD가 뭔지 설명해 주고, 플랜 문서 기준으로 docs에 각각 작성해 줘.
+```
+
+> 의도/반영: `docs/PRD.md`, `SRD.md`, `TRD.md` 초안 작성(당시 플랜·CSV Export 기준).
+
+---
+
+- 프롬프트:
+
+```
+현재 최신 코드 상태에 맞춰 PRD/SRD/TRD·README 최신화해 줘.
+```
+
+> 의도/반영: 문서 v2.0 — SheetJS `.xlsx`, contenteditable 시트 제목, 헤더 오른클릭 행·열, undo/redo, 복사·붙여넣기 등 실제 구현과 동기화. README 기술 스택·기능·단축키 정리.
+
+---
+
+- 프롬프트:
+
+```
+제목 인풋 편집 모드일 때 더 세련되게. 굳이 인풋 형태로 보일 필요 없고, 커서가 보이는 식으로.
+```
+
+> 의도/반영: 표시용 버튼+`<input>` 이중 구조 제거 → `#sheet-title-field` `contenteditable`(plaintext-only). 편집 시 테두리·흰 박스 없음, `caret-color`·하단 그라데이션 밑줄 애니메이션만. 플레이스홀더는 `:empty::before` + `data-placeholder="제목없음"`.
+
+---
+
+- 프롬프트:
+
+```
+제목 전체 선택 후 삭제하면 입력칸 높이가 높아지는 버그가 있어. 왜 그럴까?
+```
+
+> 의도/반영: 원인 — `contenteditable` 전체 삭제 시 브라우저가 커서용 `<br>`을 남겨 `:empty`가 깨지고 줄 높이가 2줄처럼 잡힘. `clearSheetTitleFieldIfEmpty()`로 실질 빈 값이면 `textContent = ''` 정규화, 편집 중 `overflow: hidden` 유지.
+
+---

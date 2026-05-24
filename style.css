@@ -111,10 +111,11 @@ body {
 }
 
 .sheet-title-wrap.is-editing .sheet-title-field {
-  overflow: visible;
+  overflow: hidden;
   text-overflow: clip;
   color: #0f172a;
   padding-bottom: 10px;
+  line-height: 1.25;
 }
 
 .sheet-title-wrap.is-editing .sheet-title-field:empty::before {

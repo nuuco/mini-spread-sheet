@@ -929,6 +929,21 @@ function readSheetTitleFromField(field) {
   return field.textContent.replace(/\r?\n/g, '').trim();
 }
 
+/** contenteditable 전체 삭제 시 브라우저가 남기는 <br> 등을 제거해 높이·placeholder 깨짐 방지 */
+function clearSheetTitleFieldIfEmpty(field) {
+  if (readSheetTitleFromField(field)) {
+    return false;
+  }
+
+  if (field.childNodes.length === 0) {
+    return true;
+  }
+
+  field.textContent = '';
+  placeCaretAtEnd(field);
+  return true;
+}
+
 function placeCaretAtEnd(element) {
   const range = document.createRange();
   range.selectNodeContents(element);
@@ -947,7 +962,13 @@ function selectAllSheetTitleField(field) {
 }
 
 function enforceSheetTitleFieldLength(field) {
+  clearSheetTitleFieldIfEmpty(field);
+
   const text = field.textContent.replace(/\r?\n/g, '');
+  if (!text) {
+    return '';
+  }
+
   if (text.length <= SHEET_TITLE_MAX_LENGTH) {
     return text;
   }
@@ -1701,7 +1722,7 @@ function bindToolbarEvents() {
 
   titleField.addEventListener('input', () => {
     spreadsheet.title = enforceSheetTitleFieldLength(titleField);
-    titleWrap.classList.toggle('is-empty', !titleField.textContent.trim());
+    titleWrap.classList.toggle('is-empty', !readSheetTitleFromField(titleField));
     scheduleSaveToLocalStorage();
   });
 

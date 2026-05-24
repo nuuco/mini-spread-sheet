@@ -19,3 +19,4 @@
 - 요구사항 문서: 플랜 기준 docs/PRD.md, SRD.md, TRD.md 작성
 - 요구사항 문서 최신화: 현재 구현 기준 PRD/SRD/TRD/README 동기화 (xlsx, 선택·undo·붙여넣기·시트제목)
 - 시트 제목 편집 UI: contenteditable 인라인 편집, 밑줄·커서만 강조 (input 박스 제거)
+- 시트 제목 전체 삭제 시 높이 버그: contenteditable 잔여 br 제거 정규화
