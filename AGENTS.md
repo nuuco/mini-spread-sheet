@@ -23,3 +23,4 @@
 - README 기능 상세: 선택·행열·undo·붙여넣기·컨텍스트 메뉴 등 사용 가이드 보강
 - OOP·ES 모듈 리팩터링: app.js → js/ (SpreadsheetApp, Model, UI·services), 미사용 insertRowAt/insertColumnAt 제거
 - GridRenderer.render 버그 수정: model을 this가 아닌 app.model에서 참조
+- Export 빈 제목: 파일명·시트탭에 제목없음 사용 (spreadsheet/Sheet1 fallback 제거)

@@ -1,3 +1,10 @@
+import { DEFAULT_SHEET_TITLE_LABEL } from '../constants.js';
+
+export function resolveExportTitle(title) {
+  const trimmed = String(title ?? '').trim();
+  return trimmed || DEFAULT_SHEET_TITLE_LABEL;
+}
+
 function sanitizeTitleForExport(title, { maxLength, fallback }) {
   const cleaned = String(title ?? '')
     .trim()
@@ -13,9 +20,15 @@ function sanitizeTitleForExport(title, { maxLength, fallback }) {
 }
 
 export function sanitizeExportFileName(title) {
-  return sanitizeTitleForExport(title, { maxLength: 80, fallback: 'spreadsheet' });
+  return sanitizeTitleForExport(resolveExportTitle(title), {
+    maxLength: 80,
+    fallback: DEFAULT_SHEET_TITLE_LABEL,
+  });
 }
 
 export function sanitizeWorksheetName(title) {
-  return sanitizeTitleForExport(title, { maxLength: 31, fallback: 'Sheet1' });
+  return sanitizeTitleForExport(resolveExportTitle(title), {
+    maxLength: 31,
+    fallback: DEFAULT_SHEET_TITLE_LABEL,
+  });
 }

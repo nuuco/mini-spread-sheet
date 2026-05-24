@@ -643,10 +643,9 @@ export class SpreadsheetApp {
     }
 
     this.titleEditor.finishEdit(false);
-    const title = this.model.title.trim();
     const data = this.model.collectData();
-    const sheetName = sanitizeWorksheetName(title);
-    const filename = `${sanitizeExportFileName(title)}.xlsx`;
+    const sheetName = sanitizeWorksheetName(this.model.title);
+    const filename = `${sanitizeExportFileName(this.model.title)}.xlsx`;
     const worksheet = XLSX.utils.aoa_to_sheet(data);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);

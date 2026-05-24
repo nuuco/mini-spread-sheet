@@ -3,6 +3,8 @@ export const CONFIG = {
   defaultCols: 5,
 };
 
+export const DEFAULT_SHEET_TITLE_LABEL = '제목없음';
+
 export const STORAGE_KEY = 'mini-spreadsheet-data';
 export const SAVE_DEBOUNCE_MS = 300;
 export const SHEET_TITLE_MAX_LENGTH = 80;

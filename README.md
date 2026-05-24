@@ -101,7 +101,7 @@ JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 
 ### 시트 제목·Export·저장
 
 - **시트 제목**: 툴바 제목 클릭 → 인라인 편집 (기본 표시 「제목없음」). Enter 저장, Esc 취소.
-- **Export Excel**: 그리드 **데이터만** 시트에 넣고, **파일명·워크시트 탭**에 제목 반영 (`spreadsheet.xlsx` / `Sheet1` fallback).
+- **Export Excel**: 그리드 **데이터만** 시트에 넣고, **파일명·워크시트 탭**에 제목 반영 (비어 있으면 `제목없음.xlsx`).
 - **localStorage**: 입력·구조 변경 후 **300ms** 뒤 자동 저장 (`mini-spreadsheet-data`: `rows`, `cols`, `data`, `title`).
 
 ---
@@ -144,7 +144,7 @@ const CONFIG = {
 ## Export 및 Google Sheets 검증
 
 1. 데이터 입력 (선택: 시트 제목 편집)
-2. **Export Excel** → `{제목}.xlsx` (제목 없으면 `spreadsheet.xlsx`)
+2. **Export Excel** → `{제목}.xlsx` (제목 없으면 `제목없음.xlsx`)
 3. Excel 또는 [Google Sheets](https://sheets.google.com) → **파일 → 가져오기 → 업로드**
 4. 시트 본문이 그리드와 같은지 확인
 
