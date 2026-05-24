@@ -11,3 +11,4 @@
 - 실행 취소/다시 실행: undo/redo 스택, Cmd/Ctrl+Z·Shift+Z·Ctrl+Y 단축키
 - 컨텍스트 메뉴 위치: 마지막 행·열 오른클릭 시 위·왼쪽으로 표시
 - Export Excel: CSV 대신 SpreadsheetML(.xls)로 Excel에서 바로 열리게 변경
+- 시트 제목 입력: 툴바 제목 필드, localStorage 저장, Export 시 1행·시트명·파일명 반영

@@ -289,3 +289,13 @@ Cmd+Enter(윈도우는 Ctrl+Enter)로 넣은 줄바꿈만 여러 줄로 보이�
 > 의도/반영: `buildExcelXmlContent`로 SpreadsheetML 생성, `spreadsheet.xls` 다운로드(`application/vnd.ms-excel`). Excel에서 바로 열림.
 
 ---
+
+- 프롬프트:
+
+```
+시트 제목 넣는 입력칸 추가하고, 그 제목이 export 파일에도 들어가게 해줘.
+```
+
+> 의도/반영: 툴바 `#sheet-title` 추가·localStorage `title` 저장. Export 시 1행 제목(병합·굵게), 빈 행, 데이터 / 워크시트 이름·파일명(`{제목}.xls`) 반영.
+
+---

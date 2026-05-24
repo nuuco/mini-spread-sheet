@@ -24,7 +24,45 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   margin-bottom: 16px;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sheet-title-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sheet-title-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2d3748;
+  flex-shrink: 0;
+}
+
+.sheet-title-input {
+  width: min(280px, 100%);
+  padding: 8px 10px;
+  border: 1px solid #b8c8d8;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.sheet-title-input:focus {
+  outline: 2px solid #4a90d9;
+  outline-offset: 1px;
 }
 
 .cell-coordinate {

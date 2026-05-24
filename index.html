@@ -9,7 +9,20 @@
 <body>
   <main class="app">
     <header class="toolbar">
-      <span id="cell-coordinate" class="cell-coordinate">Cell: A1</span>
+      <div class="toolbar-left">
+        <label class="sheet-title-field" for="sheet-title">
+          <span class="sheet-title-label">제목</span>
+          <input
+            id="sheet-title"
+            class="sheet-title-input"
+            type="text"
+            placeholder="시트 제목"
+            maxlength="80"
+            autocomplete="off"
+          />
+        </label>
+        <span id="cell-coordinate" class="cell-coordinate">Cell: A1</span>
+      </div>
       <button id="export-btn" type="button" class="export-btn">Export Excel</button>
     </header>
 

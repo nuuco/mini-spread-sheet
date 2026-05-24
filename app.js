@@ -10,6 +10,7 @@ let spreadsheet = {
   rows: CONFIG.defaultRows,
   cols: CONFIG.defaultCols,
   data: [],
+  title: '',
   anchor: { row: 0, col: 0 },
   focus: { row: 0, col: 0 },
   selectionKind: 'range',
@@ -915,11 +916,28 @@ function scheduleSaveToLocalStorage() {
   }, SAVE_DEBOUNCE_MS);
 }
 
+function syncSpreadsheetTitleFromInput() {
+  const titleInput = document.getElementById('sheet-title');
+  if (titleInput) {
+    spreadsheet.title = titleInput.value;
+  }
+}
+
+function applySpreadsheetTitleToInput() {
+  const titleInput = document.getElementById('sheet-title');
+  if (titleInput) {
+    titleInput.value = spreadsheet.title ?? '';
+  }
+}
+
 function saveToLocalStorage() {
+  syncSpreadsheetTitleFromInput();
+
   const payload = {
     rows: spreadsheet.rows,
     cols: spreadsheet.cols,
     data: spreadsheet.data,
+    title: spreadsheet.title,
   };
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -931,6 +949,7 @@ function loadFromLocalStorage() {
     spreadsheet.rows = CONFIG.defaultRows;
     spreadsheet.cols = CONFIG.defaultCols;
     spreadsheet.data = createEmptyData(spreadsheet.rows, spreadsheet.cols);
+    spreadsheet.title = '';
     return;
   }
 
@@ -939,10 +958,12 @@ function loadFromLocalStorage() {
     spreadsheet.rows = saved.rows ?? CONFIG.defaultRows;
     spreadsheet.cols = saved.cols ?? CONFIG.defaultCols;
     spreadsheet.data = saved.data ?? createEmptyData(spreadsheet.rows, spreadsheet.cols);
+    spreadsheet.title = saved.title ?? '';
   } catch {
     spreadsheet.rows = CONFIG.defaultRows;
     spreadsheet.cols = CONFIG.defaultCols;
     spreadsheet.data = createEmptyData(spreadsheet.rows, spreadsheet.cols);
+    spreadsheet.title = '';
   }
 }
 
@@ -1158,18 +1179,57 @@ function escapeXml(value) {
     .replace(/'/g, '&apos;');
 }
 
-function buildExcelXmlContent(data) {
-  const rows = data
-    .map((row) => {
-      const cells = row
-        .map(
-          (cell) =>
-            `<Cell><Data ss:Type="String">${escapeXml(cell)}</Data></Cell>`,
-        )
-        .join('');
-      return `<Row>${cells}</Row>`;
-    })
+function sanitizeExportFileName(title) {
+  const cleaned = String(title ?? '')
+    .replace(/[\\/:*?"<>|]/g, '')
+    .trim()
+    .slice(0, 80);
+
+  return cleaned || 'spreadsheet';
+}
+
+function sanitizeWorksheetName(title) {
+  const cleaned = String(title ?? '')
+    .replace(/[\\/:*?\[\]]/g, '')
+    .trim()
+    .slice(0, 31);
+
+  return cleaned || 'Sheet1';
+}
+
+function buildExcelRowXml(row, options = {}) {
+  const { mergeAcross = 0, styleId } = options;
+  const mergeAttr = mergeAcross > 0 ? ` ss:MergeAcross="${mergeAcross}"` : '';
+  const styleAttr = styleId ? ` ss:StyleID="${styleId}"` : '';
+  const value = row[0] ?? '';
+
+  if (mergeAcross > 0) {
+    return `<Row><Cell${mergeAttr}${styleAttr}><Data ss:Type="String">${escapeXml(value)}</Data></Cell></Row>`;
+  }
+
+  const cells = row
+    .map((cell) => `<Cell${styleAttr}><Data ss:Type="String">${escapeXml(cell)}</Data></Cell>`)
     .join('');
+
+  return `<Row>${cells}</Row>`;
+}
+
+function buildExcelXmlContent(data, title) {
+  const trimmedTitle = String(title ?? '').trim();
+  const sheetName = sanitizeWorksheetName(trimmedTitle);
+  const rowXmlParts = [];
+
+  if (trimmedTitle) {
+    const mergeAcross = Math.max(0, spreadsheet.cols - 1);
+    rowXmlParts.push(buildExcelRowXml([trimmedTitle], { mergeAcross, styleId: 'Title' }));
+    rowXmlParts.push(buildExcelRowXml(['']));
+  }
+
+  data.forEach((row) => {
+    rowXmlParts.push(buildExcelRowXml(row));
+  });
+
+  const rows = rowXmlParts.join('');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <?mso-application progid="Excel.Sheet"?>
@@ -1177,7 +1237,12 @@ function buildExcelXmlContent(data) {
  xmlns:o="urn:schemas-microsoft-com:office:office"
  xmlns:x="urn:schemas-microsoft-com:office:excel"
  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
- <Worksheet ss:Name="Sheet1">
+ <Styles>
+  <Style ss:ID="Title">
+   <Font ss:Bold="1" ss:Size="14"/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="${escapeXml(sheetName)}">
   <Table>${rows}</Table>
  </Worksheet>
 </Workbook>`;
@@ -1194,13 +1259,13 @@ function downloadFile(filename, content, mimeType) {
 }
 
 function exportSpreadsheet() {
+  syncSpreadsheetTitleFromInput();
+  const title = spreadsheet.title.trim();
   const data = collectSpreadsheetData();
-  const excelContent = buildExcelXmlContent(data);
-  downloadFile(
-    'spreadsheet.xls',
-    excelContent,
-    'application/vnd.ms-excel;charset=utf-8',
-  );
+  const excelContent = buildExcelXmlContent(data, title);
+  const filename = `${sanitizeExportFileName(title)}.xls`;
+
+  downloadFile(filename, excelContent, 'application/vnd.ms-excel;charset=utf-8');
 }
 
 function insertRowAt(index) {
@@ -1581,10 +1646,17 @@ function bindKeyboardEvents() {
 
 function bindToolbarEvents() {
   document.getElementById('export-btn').addEventListener('click', exportSpreadsheet);
+
+  const titleInput = document.getElementById('sheet-title');
+  titleInput.addEventListener('input', (event) => {
+    spreadsheet.title = event.target.value;
+    scheduleSaveToLocalStorage();
+  });
 }
 
 function initSpreadsheet() {
   loadFromLocalStorage();
+  applySpreadsheetTitleToInput();
   renderGrid();
   bindToolbarEvents();
   bindKeyboardEvents();
