@@ -276,6 +276,8 @@ export class GridRenderer {
 
         const input = document.createElement('textarea');
         input.className = 'cell-input';
+        input.id = `cell-input-${row}-${col}`;
+        input.name = `cell_${row}_${col}`;
         input.rows = 1;
         input.value = model.data[row][col] ?? '';
         input.setAttribute('aria-label', formatCellAddress(row, col));
