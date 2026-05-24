@@ -6,7 +6,7 @@ export function isTypingKey(event) {
 }
 
 export function isGridKeyboardTarget(event) {
-  if (event.target.closest('.controls') || event.target.closest('.toolbar')) {
+  if (event.target.closest('.toolbar')) {
     return false;
   }
   if (event.target.closest('#help-guide-modal')) {
@@ -71,10 +71,6 @@ export function shouldRouteToImeInput(event) {
     return false;
   }
   return /[\u1100-\u11FF\u3130-\u318F]/.test(event.key);
-}
-
-export function isCellInputEvent(event) {
-  return Boolean(event.target.closest('.cell-input'));
 }
 
 /** 편집 중인 셀 textarea로 키가 들어온 경우 */

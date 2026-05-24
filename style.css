@@ -539,9 +539,19 @@ body.is-dragging .col-header {
   background: var(--color-bg-muted);
 }
 
-.context-menu button.danger:hover {
+.context-menu button.danger:hover:not(:disabled) {
   background: var(--color-danger-bg);
   color: var(--color-danger);
+}
+
+.context-menu button:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.context-menu button:disabled:hover {
+  background: transparent;
 }
 
 .help-guide-modal {

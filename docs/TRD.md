@@ -166,17 +166,29 @@ let spreadsheet = {
 - `extend`: Shift 키
 - 셀: 드래그 없이 동일 셀 재클릭 → `enterEditMode`
 
-### 7.2 `updateSelectionUI` 체인
+### 7.2 `refreshSelectionUI` 체인
 
 ```
 updateCoordinateDisplay()
   → updateHeaderHighlights()
-  → updateCellSelection()
-  → syncInputEditState()
+  → updateCellsUI()
   → updateGridSizeLabel()
+  → focusSelectedCellInput()
 ```
 
-### 7.3 편집 모드
+`updateCellsUI()`는 선택 하이라이트·편집 클래스·`readOnly`·편집 오버레이 레이아웃을 **셀 DOM 한 번 순회**로 처리한다.
+
+### 7.3 `GridRenderer.render()` (증분 갱신)
+
+| 조건 | 동작 |
+|------|------|
+| 테이블 없음, 행·열 수와 DOM 불일치 | `renderFull()` — 테이블 전체 재생성·이벤트 재바인딩 |
+| 행·열 수 동일, 데이터만 변경 (undo/redo 등) | `syncCellValues()` — 기존 `textarea` 값만 모델과 동기화 |
+
+- 편집 중인 단일 셀은 IME·커서 보호를 위해 `syncCellValues`에서 건너뜀.
+- 셀·헤더 이벤트는 `dataset.row` / `dataset.col`에서 좌표를 읽어, 구조 변경 후에도 핸들러가 올바른 인덱스를 참조한다.
+
+### 7.4 편집 모드
 
 - `enterEditMode`: `textarea` focus·select, `layoutEditingInput` (fixed overlay, 최대 너비 520px).
 - `readOnly`: 선택 모드에서 true.
@@ -186,10 +198,13 @@ updateCoordinateDisplay()
 
 ## 8. 컨텍스트 메뉴
 
-| 타입 | 액션 | 함수 |
+| 타입 | 액션 | 처리 |
 |------|------|------|
-| row | `row-above`, `row-below`, `row-delete` | `insertRowsAbove/BelowSelection`, `deleteSelectedRows` |
-| column | `col-left`, `col-right`, `col-delete` | `insertColumnsLeft/RightSelection`, `deleteSelectedColumns` |
+| row | `row-above`, `row-below`, `row-delete` | `SpreadsheetApp.handleContextMenuAction` → `mutateGrid` |
+| column | `col-left`, `col-right`, `col-delete` | 동일 |
+
+- 삭제: `SpreadsheetModel.canDeleteRowsForMenu` / `canDeleteColumnsForMenu` — 최소 1행·1열 유지 불가 시 메뉴 항목 `disabled`.
+- span 계산: `getAxisSpanForHeaderMenu('row'|'column', index)` (`getRowSpanForHeaderMenu` / `getColumnSpanForHeaderMenu`는 위임).
 
 `positionContextMenu`: 마지막 행·열은 메뉴를 위·왼쪽으로 배치.
 

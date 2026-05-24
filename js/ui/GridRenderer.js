@@ -15,6 +15,17 @@ export class GridRenderer {
   constructor(app) {
     this.app = app;
     this.container = document.getElementById('spreadsheet');
+    this.table = null;
+    this.renderedRows = 0;
+    this.renderedCols = 0;
+  }
+
+  getTable() {
+    if (this.table?.isConnected) {
+      return this.table;
+    }
+    this.table = this.container?.querySelector('.grid-table') ?? null;
+    return this.table;
   }
 
   getCellInput(row, col) {
@@ -169,8 +180,12 @@ export class GridRenderer {
     field.selectionEnd = cursor;
   }
 
-  bindCellEvents(input, cell, row, col) {
+  bindCellEvents(input, cell) {
     const { app } = this;
+    const coords = () => ({
+      row: Number(cell.dataset.row),
+      col: Number(cell.dataset.col),
+    });
 
     input.addEventListener('beforeinput', (event) => {
       if (app.model.mode !== 'select') {
@@ -179,6 +194,7 @@ export class GridRenderer {
       if (!isCellInsertBeforeInput(event)) {
         return;
       }
+      const { row, col } = coords();
       const expectComposition =
         event.isComposing === true ||
         event.inputType === 'insertCompositionText' ||
@@ -193,6 +209,7 @@ export class GridRenderer {
           return;
         }
         if (shouldRouteToImeInput(event)) {
+          const { row, col } = coords();
           app.prepareCellEditFromInput(row, col, { expectComposition: true });
         }
       },
@@ -203,6 +220,7 @@ export class GridRenderer {
       if (GridRenderer.isInputComposing(target, event)) {
         return;
       }
+      const { row, col } = coords();
       GridRenderer.updateCellInputLayout(target);
       app.handleCellInput(row, col, target.value);
       if (
@@ -251,10 +269,10 @@ export class GridRenderer {
       if (isComposingInput(event) || GridRenderer.isInputComposing(event.target, event)) {
         return;
       }
-      // 선택 모드: document 핸들러(SpreadsheetApp)가 Enter → 편집 진입 처리
       if (app.model.mode !== 'edit') {
         return;
       }
+      const { row, col } = coords();
       if (isNewlineShortcut(event)) {
         event.preventDefault();
         event.stopPropagation();
@@ -269,6 +287,7 @@ export class GridRenderer {
     });
 
     input.addEventListener('blur', () => {
+      const { row, col } = coords();
       GridRenderer.collapseInputSelection(input);
       app.exitEditMode(row, col);
     });
@@ -278,22 +297,25 @@ export class GridRenderer {
         return;
       }
       event.preventDefault();
+      const { row, col } = coords();
       app.beginDragSelection('cell', row, col, event.shiftKey);
     });
   }
 
-  bindRowHeaderEvents(rowHeader, row) {
+  bindRowHeaderEvents(rowHeader) {
     const { app } = this;
     rowHeader.addEventListener('mousedown', (event) => {
       if (event.button !== 0) {
         return;
       }
       event.preventDefault();
+      const row = Number(rowHeader.dataset.row);
       app.beginDragSelection('row', row, 0, event.shiftKey);
     });
 
     rowHeader.addEventListener('contextmenu', (event) => {
       event.preventDefault();
+      const row = Number(rowHeader.dataset.row);
       if (!app.model.isRowInSelection(row)) {
         app.beginDragSelection('row', row, 0, event.shiftKey);
         app.endDragSelection();
@@ -302,18 +324,20 @@ export class GridRenderer {
     });
   }
 
-  bindColHeaderEvents(colHeader, col) {
+  bindColHeaderEvents(colHeader) {
     const { app } = this;
     colHeader.addEventListener('mousedown', (event) => {
       if (event.button !== 0) {
         return;
       }
       event.preventDefault();
+      const col = Number(colHeader.dataset.col);
       app.beginDragSelection('column', 0, col, event.shiftKey);
     });
 
     colHeader.addEventListener('contextmenu', (event) => {
       event.preventDefault();
+      const col = Number(colHeader.dataset.col);
       if (!app.model.isColumnInSelection(col)) {
         app.beginDragSelection('column', 0, col, event.shiftKey);
         app.endDragSelection();
@@ -322,13 +346,7 @@ export class GridRenderer {
     });
   }
 
-  render() {
-    const { app } = this;
-    const { model } = app;
-    const table = document.createElement('table');
-    table.className = 'grid-table';
-
-    const headerRow = document.createElement('tr');
+  createCornerHeader() {
     const cornerCell = document.createElement('th');
     cornerCell.className = 'corner-header';
     cornerCell.addEventListener('mousedown', (event) => {
@@ -336,53 +354,138 @@ export class GridRenderer {
         return;
       }
       event.preventDefault();
-      app.selectEntireSheet();
+      this.app.selectEntireSheet();
     });
-    headerRow.appendChild(cornerCell);
+    return cornerCell;
+  }
 
+  createColHeader(col) {
+    const colHeader = document.createElement('th');
+    colHeader.className = 'col-header';
+    colHeader.dataset.col = String(col);
+    colHeader.textContent = columnIndexToLabel(col);
+    this.bindColHeaderEvents(colHeader);
+    return colHeader;
+  }
+
+  createRowHeader(row) {
+    const rowHeader = document.createElement('th');
+    rowHeader.className = 'row-header';
+    rowHeader.dataset.row = String(row);
+    rowHeader.textContent = String(row + 1);
+    this.bindRowHeaderEvents(rowHeader);
+    return rowHeader;
+  }
+
+  createCell(row, col) {
+    const { model } = this.app;
+    const cell = document.createElement('td');
+    cell.className = 'cell';
+    cell.dataset.row = String(row);
+    cell.dataset.col = String(col);
+
+    const input = document.createElement('textarea');
+    input.className = 'cell-input';
+    input.id = `cell-input-${row}-${col}`;
+    input.name = `cell_${row}_${col}`;
+    input.rows = 1;
+    input.value = model.data[row][col] ?? '';
+    input.setAttribute('aria-label', formatCellAddress(row, col));
+    GridRenderer.updateCellInputLayout(input);
+
+    this.bindCellEvents(input, cell);
+    cell.appendChild(input);
+    return cell;
+  }
+
+  createBodyRow(row) {
+    const tableRow = document.createElement('tr');
+    tableRow.appendChild(this.createRowHeader(row));
+    for (let col = 0; col < this.app.model.cols; col += 1) {
+      tableRow.appendChild(this.createCell(row, col));
+    }
+    return tableRow;
+  }
+
+  needsFullRender() {
+    const table = this.getTable();
+    if (!table) {
+      return true;
+    }
+    if (table.rows.length !== this.app.model.rows + 1) {
+      return true;
+    }
+    const expectedCols = this.app.model.cols + 1;
+    return table.rows[0]?.cells.length !== expectedCols;
+  }
+
+  syncCellValues() {
+    const { model, app } = this.app;
+    const skipCell =
+      model.mode === 'edit' && model.isSingleCellSelection()
+        ? model.getActiveCell()
+        : null;
+
+    const table = this.getTable();
+    if (!table) {
+      return;
+    }
+
+    for (let row = 0; row < model.rows; row += 1) {
+      for (let col = 0; col < model.cols; col += 1) {
+        if (skipCell && skipCell.row === row && skipCell.col === col) {
+          continue;
+        }
+        const input = table.rows[row + 1]?.cells[col + 1]?.querySelector('.cell-input');
+        if (!input) {
+          continue;
+        }
+        const nextValue = model.data[row][col] ?? '';
+        if (input.value !== nextValue) {
+          input.value = nextValue;
+          GridRenderer.updateCellInputLayout(input);
+        }
+      }
+    }
+  }
+
+  finishRender() {
+    const { model, app } = this.app;
+    model.clampSelection();
+    app.refreshSelectionUI();
+  }
+
+  renderFull() {
+    const { app } = this;
+    const { model } = app;
+    const table = document.createElement('table');
+    table.className = 'grid-table';
+
+    const headerRow = document.createElement('tr');
+    headerRow.appendChild(this.createCornerHeader());
     for (let col = 0; col < model.cols; col += 1) {
-      const colHeader = document.createElement('th');
-      colHeader.className = 'col-header';
-      colHeader.dataset.col = String(col);
-      colHeader.textContent = columnIndexToLabel(col);
-      this.bindColHeaderEvents(colHeader, col);
-      headerRow.appendChild(colHeader);
+      headerRow.appendChild(this.createColHeader(col));
     }
     table.appendChild(headerRow);
 
     for (let row = 0; row < model.rows; row += 1) {
-      const tableRow = document.createElement('tr');
-      const rowHeader = document.createElement('th');
-      rowHeader.className = 'row-header';
-      rowHeader.dataset.row = String(row);
-      rowHeader.textContent = String(row + 1);
-      this.bindRowHeaderEvents(rowHeader, row);
-      tableRow.appendChild(rowHeader);
-
-      for (let col = 0; col < model.cols; col += 1) {
-        const cell = document.createElement('td');
-        cell.className = 'cell';
-        cell.dataset.row = String(row);
-        cell.dataset.col = String(col);
-
-        const input = document.createElement('textarea');
-        input.className = 'cell-input';
-        input.id = `cell-input-${row}-${col}`;
-        input.name = `cell_${row}_${col}`;
-        input.rows = 1;
-        input.value = model.data[row][col] ?? '';
-        input.setAttribute('aria-label', formatCellAddress(row, col));
-        GridRenderer.updateCellInputLayout(input);
-
-        this.bindCellEvents(input, cell, row, col);
-        cell.appendChild(input);
-        tableRow.appendChild(cell);
-      }
-      table.appendChild(tableRow);
+      table.appendChild(this.createBodyRow(row));
     }
 
     this.container.replaceChildren(table);
-    model.clampSelection();
-    app.refreshSelectionUI();
+    this.table = table;
+    this.renderedRows = model.rows;
+    this.renderedCols = model.cols;
+    this.finishRender();
+  }
+
+  render() {
+    if (this.needsFullRender()) {
+      this.renderFull();
+      return;
+    }
+
+    this.syncCellValues();
+    this.finishRender();
   }
 }

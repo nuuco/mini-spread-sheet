@@ -193,7 +193,7 @@ const CONFIG = {
 |------|------|
 | `SpreadsheetApp` | 초기화, UI 동기화, 드래그·키보드, undo/redo, Export |
 | `SpreadsheetModel` | `data`·선택 상태, 행열 변경, 붙여넣기·범위 계산 |
-| `GridRenderer` | 그리드 DOM 생성·셀 이벤트 |
+| `GridRenderer` | 그리드 DOM 생성·셀 이벤트 (구조 변경 시 전체 렌더, 동일 크기 시 값만 동기화) |
 | `UndoStack` | 실행 취소 스택 |
 | `SheetTitleEditor` | 제목 contenteditable 편집 |
 | `ContextMenu` | 행·열 헤더 오른클릭 메뉴 |

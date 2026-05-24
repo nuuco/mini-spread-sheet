@@ -49,3 +49,5 @@
 - 행·열 추가·삭제: `getColumnSpanForHeaderMenu`·range 열/행 범위 인정·삽입 후 선택 shift·컨텍스트 메뉴 클릭 시 선택 해제/`index` null 버그 수정
 - 선택 모드 Enter: textarea keydown이 편집 전 finishEditAndMoveDown 호출하던 버그 수정·선택 모드 활성 셀 캐럿 숨김(IME 포커스 유지)
 - 검증 잔여 이슈: 가이드 모달 열림 시 그리드 단축키 차단(`isGridKeyboardTarget`)·PRD/SRD/TRD Export 제목·모바일·Enter·js 구조 문서 동기화
+- 코드 정리: 미사용 `isCellInputEvent`·`.controls` 제거, `updateCellsUI` 단일 순회, 단일 행/열 삭제 시 선택 shift·빈 undo 방지
+- 리팩터 1~4: 컨텍스트 삭제 비활성화, `GridRenderer` 증분 `syncCellValues`, `getAxisSpanForHeaderMenu`, TRD/SRD/IME 문서 동기화

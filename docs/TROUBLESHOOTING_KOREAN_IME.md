@@ -41,9 +41,9 @@ Vanilla JS 스프레드시트에서 `textarea` 기반 셀 편집 시 발생했�
 - `compositionstart` ~ `compositionend` 동안 `dataset.imeComposing = 'true'`
 - `GridRenderer.isInputComposing()`이 true이면 `syncEditingInput`에서 `layoutEditingInput`·`handleCellInput` 스킵
 - `compositionend` 후 `requestAnimationFrame`으로 한 번만 동기화
-- `syncInputEditState()`에서는 편집 중 매 refresh마다 `layoutEditingInput` 호출하지 않음
+- `updateCellsUI()`에서는 편집 중 매 refresh마다 `layoutEditingInput` 호출하지 않음
 
-**관련 파일:** `js/ui/GridRenderer.js`, `js/SpreadsheetApp.js` (`syncInputEditState`)
+**관련 파일:** `js/ui/GridRenderer.js`, `js/SpreadsheetApp.js` (`updateCellsUI`)
 
 ---
 
@@ -75,7 +75,7 @@ Vanilla JS 스프레드시트에서 `textarea` 기반 셀 편집 시 발생했�
 **해결 (현재 구조):**
 
 1. **활성 셀만 `readOnly` 해제**  
-   `syncInputEditState()`에서 단일 셀 선택 시 포커스 셀(`isActiveCell`)은 `readOnly = false`, 나머지 셀만 `readOnly = true`.
+   `updateCellsUI()`에서 단일 셀 선택 시 포커스 셀(`isActiveCell`)은 `readOnly = false`, 나머지 셀만 `readOnly = true`.
 
 2. **선택 시 활성 셀 textarea에 포커스 유지**  
    `refreshSelectionUI()` → `focusSelectedCellInput()` (툴바·제목 편집 중에는 포커스 빼앗지 않음).

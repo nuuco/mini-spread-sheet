@@ -102,9 +102,6 @@ export class SheetTitleEditor {
   }
 
   applyToField() {
-    if (this.field) {
-      this.field.textContent = this.model.title ?? '';
-    }
     this.syncFromModel();
   }
 

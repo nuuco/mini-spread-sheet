@@ -14,7 +14,7 @@ export class ContextMenu {
 
     this.menu.addEventListener('click', (event) => {
       const button = event.target.closest('button[data-action]');
-      if (!button) {
+      if (!button || button.disabled) {
         return;
       }
       const { type, index } = this.state;
@@ -41,20 +41,32 @@ export class ContextMenu {
   getRowItems(index) {
     const { count } = this.model.getRowSpanForHeaderMenu(index);
     const countLabel = count > 1 ? ` ${count}개` : '';
+    const canDelete = this.model.canDeleteRowsForMenu(count);
     return [
       { action: 'row-above', label: `위에 행${countLabel} 추가` },
       { action: 'row-below', label: `아래에 행${countLabel} 추가` },
-      { action: 'row-delete', label: count > 1 ? `행 삭제 (${count}개)` : '행 삭제', danger: true },
+      {
+        action: 'row-delete',
+        label: count > 1 ? `행 삭제 (${count}개)` : '행 삭제',
+        danger: true,
+        disabled: !canDelete,
+      },
     ];
   }
 
   getColItems(index) {
     const { count } = this.model.getColumnSpanForHeaderMenu(index);
     const countLabel = count > 1 ? ` ${count}개` : '';
+    const canDelete = this.model.canDeleteColumnsForMenu(count);
     return [
       { action: 'col-left', label: `왼쪽에 열${countLabel} 추가` },
       { action: 'col-right', label: `오른쪽에 열${countLabel} 추가` },
-      { action: 'col-delete', label: count > 1 ? `열 삭제 (${count}개)` : '열 삭제', danger: true },
+      {
+        action: 'col-delete',
+        label: count > 1 ? `열 삭제 (${count}개)` : '열 삭제',
+        danger: true,
+        disabled: !canDelete,
+      },
     ];
   }
 
@@ -82,6 +94,9 @@ export class ContextMenu {
         button.dataset.action = item.action;
         if (item.danger) {
           button.classList.add('danger');
+        }
+        if (item.disabled) {
+          button.disabled = true;
         }
         return button;
       }),

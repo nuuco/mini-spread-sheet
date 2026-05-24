@@ -127,7 +127,7 @@ export class SpreadsheetApp {
           return;
         }
         if (this.titleEditor.isEditing() && !event.target.closest('#sheet-title-wrap')) {
-          this.titleEditor.finishEdit(false);
+          this.finishTitleEditIfActive();
         }
         if (
           !event.target.closest('#spreadsheet') &&
@@ -320,8 +320,7 @@ export class SpreadsheetApp {
   refreshSelectionUI() {
     this.updateCoordinateDisplay();
     this.updateHeaderHighlights();
-    this.updateCellSelection();
-    this.syncInputEditState();
+    this.updateCellsUI();
     this.updateGridSizeLabel();
     this.focusSelectedCellInput();
   }
@@ -381,7 +380,6 @@ export class SpreadsheetApp {
 
   updateHeaderHighlights() {
     const bounds = this.model.getSelectionBounds();
-    const { selectionKind } = this.model;
 
     if (!bounds) {
       document.querySelectorAll('.col-header, .row-header').forEach((header) => {
@@ -392,67 +390,46 @@ export class SpreadsheetApp {
 
     const singleCell = this.model.isSingleCellSelection();
     const activeCell = this.model.getActiveCell();
+    const { selectionKind } = this.model;
 
     document.querySelectorAll('.col-header').forEach((header) => {
       const col = Number(header.dataset.col);
-      let active = false;
-      if (selectionKind === 'column') {
-        active = col >= bounds.colMin && col <= bounds.colMax;
-      } else if (selectionKind === 'sheet') {
-        active = true;
-      } else if (selectionKind !== 'row' && singleCell) {
-        active = col === activeCell.col;
-      } else if (selectionKind === 'range' && !singleCell) {
-        active = col >= bounds.colMin && col <= bounds.colMax;
-      }
-      header.classList.toggle('active', active);
+      header.classList.toggle(
+        'active',
+        isColumnHeaderActive(col, selectionKind, bounds, singleCell, activeCell),
+      );
     });
 
     document.querySelectorAll('.row-header').forEach((header) => {
       const row = Number(header.dataset.row);
-      let active = false;
-      if (selectionKind === 'row') {
-        active = row >= bounds.rowMin && row <= bounds.rowMax;
-      } else if (selectionKind === 'sheet') {
-        active = true;
-      } else if (selectionKind !== 'column' && singleCell) {
-        active = row === activeCell.row;
-      } else if (selectionKind === 'range' && !singleCell) {
-        active = row >= bounds.rowMin && row <= bounds.rowMax;
-      }
-      header.classList.toggle('active', active);
+      header.classList.toggle(
+        'active',
+        isRowHeaderActive(row, selectionKind, bounds, singleCell, activeCell),
+      );
     });
   }
 
-  updateCellSelection() {
+  updateCellsUI() {
+    const cells = document.querySelectorAll('.cell');
+    const bounds = this.model.getSelectionBounds();
+    const isInSelection = (row, col) =>
+      Boolean(
+        bounds &&
+          row >= bounds.rowMin &&
+          row <= bounds.rowMax &&
+          col >= bounds.colMin &&
+          col <= bounds.colMax,
+      );
+
     if (!this.model.hasSelection()) {
-      document.querySelectorAll('.cell').forEach((cell) => {
-        cell.classList.remove('in-selection', 'active-cell', 'highlight-row', 'highlight-col');
-      });
-      return;
-    }
-
-    const { row: focusRow, col: focusCol } = this.model.getActiveCell();
-    const showRowColGuide =
-      this.model.isSingleCellSelection() && this.model.selectionKind === 'range';
-
-    document.querySelectorAll('.cell').forEach((cell) => {
-      const cellRow = Number(cell.dataset.row);
-      const cellCol = Number(cell.dataset.col);
-      const inSelection = this.model.isCellInSelection(cellRow, cellCol);
-      const isActive = inSelection && cellRow === focusRow && cellCol === focusCol;
-
-      cell.classList.toggle('in-selection', inSelection);
-      cell.classList.toggle('active-cell', isActive);
-      cell.classList.toggle('highlight-row', showRowColGuide && cellRow === focusRow);
-      cell.classList.toggle('highlight-col', showRowColGuide && cellCol === focusCol);
-    });
-  }
-
-  syncInputEditState() {
-    if (!this.model.hasSelection()) {
-      document.querySelectorAll('.cell').forEach((cell) => {
-        cell.classList.remove('editing');
+      cells.forEach((cell) => {
+        cell.classList.remove(
+          'in-selection',
+          'active-cell',
+          'highlight-row',
+          'highlight-col',
+          'editing',
+        );
         const input = cell.querySelector('.cell-input');
         if (!input) {
           return;
@@ -464,24 +441,28 @@ export class SpreadsheetApp {
       return;
     }
 
-    const { row, col } = this.model.getActiveCell();
+    const { row: activeRow, col: activeCol } = this.model.getActiveCell();
+    const showRowColGuide =
+      this.model.isSingleCellSelection() && this.model.selectionKind === 'range';
     const isEditing = this.model.mode === 'edit' && this.model.isSingleCellSelection();
     const isSingleCellSelect =
       this.model.mode === 'select' && this.model.isSingleCellSelection();
 
-    document.querySelectorAll('.cell').forEach((cell) => {
+    cells.forEach((cell) => {
       const cellRow = Number(cell.dataset.row);
       const cellCol = Number(cell.dataset.col);
+      const inSelection = isInSelection(cellRow, cellCol);
+      const isActive = inSelection && cellRow === activeRow && cellCol === activeCol;
+
+      cell.classList.toggle('in-selection', inSelection);
+      cell.classList.toggle('active-cell', isActive);
+      cell.classList.toggle('highlight-row', showRowColGuide && cellRow === activeRow);
+      cell.classList.toggle('highlight-col', showRowColGuide && cellCol === activeCol);
+
       const editing =
-        isEditing &&
-        cellRow === row &&
-        cellCol === col &&
-        this.model.isCellInSelection(cellRow, cellCol);
+        isEditing && cellRow === activeRow && cellCol === activeCol && inSelection;
       const isActiveCell =
-        isSingleCellSelect &&
-        cellRow === row &&
-        cellCol === col &&
-        this.model.isCellInSelection(cellRow, cellCol);
+        isSingleCellSelect && cellRow === activeRow && cellCol === activeCol && inSelection;
 
       cell.classList.toggle('editing', editing);
       const input = cell.querySelector('.cell-input');
@@ -897,6 +878,9 @@ export class SpreadsheetApp {
       this.mutateGrid(() => model.deleteRowRange(span.rowMin, span.count));
       return;
     }
+    if (model.rows <= 1) {
+      return;
+    }
     this.mutateGrid(() => model.deleteRowAt(span.rowMin));
   }
 
@@ -905,6 +889,9 @@ export class SpreadsheetApp {
     const span = model.getColumnSpanForHeaderMenu(contextIndex);
     if (span.count > 1) {
       this.mutateGrid(() => model.deleteColumnRange(span.colMin, span.count));
+      return;
+    }
+    if (model.cols <= 1) {
       return;
     }
     this.mutateGrid(() => model.deleteColumnAt(span.colMin));
@@ -916,7 +903,7 @@ export class SpreadsheetApp {
       return;
     }
 
-    this.titleEditor.finishEdit(false);
+    this.finishTitleEditIfActive();
     const data = this.model.collectData();
     const sheetName = sanitizeWorksheetName(this.model.title);
     const filename = `${sanitizeExportFileName(this.model.title)}.xlsx`;
@@ -925,4 +912,36 @@ export class SpreadsheetApp {
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
     XLSX.writeFile(workbook, filename);
   }
+}
+
+function isColumnHeaderActive(col, selectionKind, bounds, singleCell, activeCell) {
+  if (selectionKind === 'column') {
+    return col >= bounds.colMin && col <= bounds.colMax;
+  }
+  if (selectionKind === 'sheet') {
+    return true;
+  }
+  if (selectionKind !== 'row' && singleCell) {
+    return col === activeCell.col;
+  }
+  if (selectionKind === 'range' && !singleCell) {
+    return col >= bounds.colMin && col <= bounds.colMax;
+  }
+  return false;
+}
+
+function isRowHeaderActive(row, selectionKind, bounds, singleCell, activeCell) {
+  if (selectionKind === 'row') {
+    return row >= bounds.rowMin && row <= bounds.rowMax;
+  }
+  if (selectionKind === 'sheet') {
+    return true;
+  }
+  if (selectionKind !== 'column' && singleCell) {
+    return row === activeCell.row;
+  }
+  if (selectionKind === 'range' && !singleCell) {
+    return row >= bounds.rowMin && row <= bounds.rowMax;
+  }
+  return false;
 }

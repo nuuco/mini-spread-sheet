@@ -52,7 +52,7 @@ export class SpreadsheetModel {
     return {
       rows: this.rows,
       cols: this.cols,
-      data: this.data.map((row) => [...row]),
+      data: this.collectData(),
     };
   }
 
@@ -260,6 +260,7 @@ export class SpreadsheetModel {
     }
     this.data.splice(index, 1);
     this.rows -= 1;
+    this.shiftSelectionForRowDelete(index, 1);
     this.clampSelection();
     return true;
   }
@@ -294,6 +295,7 @@ export class SpreadsheetModel {
     }
     this.data.forEach((row) => row.splice(index, 1));
     this.cols -= 1;
+    this.shiftSelectionForColumnDelete(index, 1);
     this.clampSelection();
     return true;
   }
@@ -316,58 +318,56 @@ export class SpreadsheetModel {
     this.clampSelection();
   }
 
-  getRowSpanForHeaderMenu(contextIndex) {
+  getAxisSpanForHeaderMenu(axis, contextIndex) {
+    const isRow = axis === 'row';
     const bounds = this.getSelectionBounds();
-    const row = contextIndex ?? bounds?.rowMin ?? 0;
+    const index = contextIndex ?? (isRow ? bounds?.rowMin : bounds?.colMin) ?? 0;
+    const minKey = isRow ? 'rowMin' : 'colMin';
+    const maxKey = isRow ? 'rowMax' : 'colMax';
+    const selectionAxis = isRow ? 'row' : 'column';
+
     if (!bounds) {
-      return { rowMin: row, rowMax: row, count: 1 };
+      return isRow
+        ? { rowMin: index, rowMax: index, count: 1 }
+        : { colMin: index, colMax: index, count: 1 };
     }
-    if (this.selectionKind === 'row') {
+    if (this.selectionKind === selectionAxis) {
       return {
-        rowMin: bounds.rowMin,
-        rowMax: bounds.rowMax,
-        count: bounds.rowMax - bounds.rowMin + 1,
+        [minKey]: bounds[minKey],
+        [maxKey]: bounds[maxKey],
+        count: bounds[maxKey] - bounds[minKey] + 1,
       };
     }
     if (
       this.selectionKind === 'range' &&
-      row >= bounds.rowMin &&
-      row <= bounds.rowMax
+      index >= bounds[minKey] &&
+      index <= bounds[maxKey]
     ) {
       return {
-        rowMin: bounds.rowMin,
-        rowMax: bounds.rowMax,
-        count: bounds.rowMax - bounds.rowMin + 1,
+        [minKey]: bounds[minKey],
+        [maxKey]: bounds[maxKey],
+        count: bounds[maxKey] - bounds[minKey] + 1,
       };
     }
-    return { rowMin: row, rowMax: row, count: 1 };
+    return isRow
+      ? { rowMin: index, rowMax: index, count: 1 }
+      : { colMin: index, colMax: index, count: 1 };
+  }
+
+  getRowSpanForHeaderMenu(contextIndex) {
+    return this.getAxisSpanForHeaderMenu('row', contextIndex);
   }
 
   getColumnSpanForHeaderMenu(contextIndex) {
-    const bounds = this.getSelectionBounds();
-    const col = contextIndex ?? bounds?.colMin ?? 0;
-    if (!bounds) {
-      return { colMin: col, colMax: col, count: 1 };
-    }
-    if (this.selectionKind === 'column') {
-      return {
-        colMin: bounds.colMin,
-        colMax: bounds.colMax,
-        count: bounds.colMax - bounds.colMin + 1,
-      };
-    }
-    if (
-      this.selectionKind === 'range' &&
-      col >= bounds.colMin &&
-      col <= bounds.colMax
-    ) {
-      return {
-        colMin: bounds.colMin,
-        colMax: bounds.colMax,
-        count: bounds.colMax - bounds.colMin + 1,
-      };
-    }
-    return { colMin: col, colMax: col, count: 1 };
+    return this.getAxisSpanForHeaderMenu('column', contextIndex);
+  }
+
+  canDeleteRowsForMenu(spanCount) {
+    return this.rows > 1 || spanCount < this.rows;
+  }
+
+  canDeleteColumnsForMenu(spanCount) {
+    return this.cols > 1 || spanCount < this.cols;
   }
 
   isRowInSelection(row) {
