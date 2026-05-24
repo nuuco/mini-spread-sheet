@@ -1224,22 +1224,26 @@ function collectSpreadsheetData() {
   return spreadsheet.data.map((row) => [...row]);
 }
 
-function sanitizeExportFileName(title) {
+function sanitizeTitleForExport(title, { maxLength, fallback }) {
   const cleaned = String(title ?? '')
-    .replace(/[\\/:*?"<>|]/g, '')
     .trim()
-    .slice(0, 80);
+    .replace(/[\u0000-\u001f\u007f]/g, '')
+    .replace(/[\\/:*?"<>|[\]]/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^[._]+|[._]+$/g, '')
+    .slice(0, maxLength)
+    .replace(/^[._]+|[._]+$/g, '');
 
-  return cleaned || 'spreadsheet';
+  return cleaned || fallback;
+}
+
+function sanitizeExportFileName(title) {
+  return sanitizeTitleForExport(title, { maxLength: 80, fallback: 'spreadsheet' });
 }
 
 function sanitizeWorksheetName(title) {
-  const cleaned = String(title ?? '')
-    .replace(/[\\/:*?\[\]]/g, '')
-    .trim()
-    .slice(0, 31);
-
-  return cleaned || 'Sheet1';
+  return sanitizeTitleForExport(title, { maxLength: 31, fallback: 'Sheet1' });
 }
 
 function exportSpreadsheet() {
