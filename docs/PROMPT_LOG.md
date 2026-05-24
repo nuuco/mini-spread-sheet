@@ -453,7 +453,7 @@ GET favicon.ico 404 — 파비콘 어울리는 걸로 하나 만들어줘.
 - 프롬프트:
 
 ```
-GridRenderer model.cols undefined 오류 / 파비콘·모서리칸 README·AGENTS·프롬프트 로그
+GridRenderer model.cols undefined 오류 / 파비콘·모서리칸 README·AGENTS·프롬프트 로그 추가
 ```
 
 > 의도/반영: `render()`에서 `const { model } = app` 수정. README 모서리 칸(헤더 교차 빈 칸) 전체 선택 문구 보강. AGENTS·PROMPT_LOG에 파비콘·후속 수정 기록.
