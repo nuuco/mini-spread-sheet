@@ -127,3 +127,13 @@
 > 의도/반영: `index.html` Export 버튼 라벨을 `Export Excel`로 변경, README 안내 문구 동일 반영.
 
 ---
+
+- 프롬프트:
+
+```
+셀, 행, 열을 드래그로도 여러 개 선택할 수 있게 해줘.
+```
+
+> 의도/반영: `beginDragSelection`·`updateDragSelection`·`endDragSelection` 추가. 셀·행·열 헤더 `mousedown`→드래그→`mouseup`으로 범위 확장. 클릭만 하면 기존 선택/더블클릭 편집 유지, 드래그 시 `body.is-dragging`으로 텍스트 선택 방지.
+
+---

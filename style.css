@@ -150,7 +150,16 @@ body {
   cursor: text;
 }
 
-.controls {
+body.is-dragging {
+  user-select: none;
+  cursor: cell;
+}
+
+body.is-dragging .row-header,
+body.is-dragging .col-header {
+  cursor: pointer;
+}
+
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

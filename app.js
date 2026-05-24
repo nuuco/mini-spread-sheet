@@ -18,6 +18,14 @@ let spreadsheet = {
 
 let saveTimer = null;
 
+const dragSelection = {
+  active: false,
+  moved: false,
+  kind: null,
+  pointerDownOn: { row: 0, col: 0 },
+  wasActiveBeforeDown: false,
+};
+
 function createEmptyData(rows, cols) {
   return Array.from({ length: rows }, () => Array(cols).fill(''));
 }
@@ -137,49 +145,142 @@ function syncInputEditState() {
   });
 }
 
-function setRowSelection(row, extend = false) {
-  if (extend) {
-    spreadsheet.focus = { row, col: 0 };
+function beginDragSelection(kind, row, col, extend = false) {
+  if (kind === 'cell') {
+    const activeCell = getActiveCell();
+    dragSelection.wasActiveBeforeDown =
+      spreadsheet.mode === 'select' &&
+      isSingleCellSelection() &&
+      spreadsheet.selectionKind === 'range' &&
+      activeCell.row === row &&
+      activeCell.col === col &&
+      spreadsheet.anchor.row === row &&
+      spreadsheet.anchor.col === col;
   } else {
-    spreadsheet.anchor = { row, col: 0 };
-    spreadsheet.focus = { row, col: 0 };
+    dragSelection.wasActiveBeforeDown = false;
   }
-  spreadsheet.selectionKind = 'row';
+
   spreadsheet.mode = 'select';
   blurActiveCellInput();
+
+  if (kind === 'cell') {
+    if (extend) {
+      spreadsheet.focus = { row, col };
+      spreadsheet.selectionKind = 'range';
+    } else {
+      spreadsheet.anchor = { row, col };
+      spreadsheet.focus = { row, col };
+      spreadsheet.selectionKind = 'range';
+    }
+  } else if (kind === 'row') {
+    if (extend) {
+      spreadsheet.focus = { row, col: 0 };
+    } else {
+      spreadsheet.anchor = { row, col: 0 };
+      spreadsheet.focus = { row, col: 0 };
+    }
+    spreadsheet.selectionKind = 'row';
+  } else if (kind === 'column') {
+    if (extend) {
+      spreadsheet.focus = { row: 0, col };
+    } else {
+      spreadsheet.anchor = { row: 0, col };
+      spreadsheet.focus = { row: 0, col };
+    }
+    spreadsheet.selectionKind = 'column';
+  }
+
+  dragSelection.active = true;
+  dragSelection.moved = false;
+  dragSelection.kind = kind;
+  dragSelection.pointerDownOn = { row, col };
+  document.body.classList.add('is-dragging');
   updateSelectionUI();
 }
 
-function setColumnSelection(col, extend = false) {
-  if (extend) {
-    spreadsheet.focus = { row: 0, col };
-  } else {
-    spreadsheet.anchor = { row: 0, col };
-    spreadsheet.focus = { row: 0, col };
+function updateDragSelection(row, col) {
+  if (!dragSelection.active) {
+    return;
   }
-  spreadsheet.selectionKind = 'column';
-  spreadsheet.mode = 'select';
-  blurActiveCellInput();
+
+  const nextRow = Math.max(0, Math.min(row, spreadsheet.rows - 1));
+  const nextCol = Math.max(0, Math.min(col, spreadsheet.cols - 1));
+
+  if (dragSelection.kind === 'cell') {
+    if (spreadsheet.focus.row === nextRow && spreadsheet.focus.col === nextCol) {
+      return;
+    }
+    dragSelection.moved = true;
+    spreadsheet.focus = { row: nextRow, col: nextCol };
+    spreadsheet.selectionKind = 'range';
+  } else if (dragSelection.kind === 'row') {
+    if (spreadsheet.focus.row === nextRow) {
+      return;
+    }
+    dragSelection.moved = true;
+    spreadsheet.focus = { row: nextRow, col: 0 };
+    spreadsheet.selectionKind = 'row';
+  } else if (dragSelection.kind === 'column') {
+    if (spreadsheet.focus.col === nextCol) {
+      return;
+    }
+    dragSelection.moved = true;
+    spreadsheet.focus = { row: 0, col: nextCol };
+    spreadsheet.selectionKind = 'column';
+  }
+
   updateSelectionUI();
+}
+
+function endDragSelection() {
+  if (!dragSelection.active) {
+    return;
+  }
+
+  const { moved, kind, wasActiveBeforeDown, pointerDownOn } = dragSelection;
+
+  if (!moved && kind === 'cell' && wasActiveBeforeDown) {
+    enterEditMode(pointerDownOn.row, pointerDownOn.col);
+  }
+
+  dragSelection.active = false;
+  dragSelection.moved = false;
+  dragSelection.kind = null;
+  document.body.classList.remove('is-dragging');
+}
+
+function handleDocumentMouseMove(event) {
+  if (!dragSelection.active) {
+    return;
+  }
+
+  const target = document.elementFromPoint(event.clientX, event.clientY);
+  if (!target) {
+    return;
+  }
+
+  const cell = target.closest('.cell');
+  const rowHeader = target.closest('.row-header');
+  const colHeader = target.closest('.col-header');
+
+  if (dragSelection.kind === 'cell' && cell) {
+    updateDragSelection(Number(cell.dataset.row), Number(cell.dataset.col));
+  } else if (dragSelection.kind === 'row' && rowHeader) {
+    updateDragSelection(Number(rowHeader.dataset.row), 0);
+  } else if (dragSelection.kind === 'column' && colHeader) {
+    updateDragSelection(0, Number(colHeader.dataset.col));
+  }
+}
+
+function bindDragSelectionEvents() {
+  document.addEventListener('mousemove', handleDocumentMouseMove);
+  document.addEventListener('mouseup', endDragSelection);
 }
 
 function blurActiveCellInput() {
   if (document.activeElement?.classList.contains('cell-input')) {
     document.activeElement.blur();
   }
-}
-
-function enterSelectMode(row, col, extend = false) {
-  if (extend) {
-    spreadsheet.focus = { row, col };
-  } else {
-    spreadsheet.anchor = { row, col };
-    spreadsheet.focus = { row, col };
-    spreadsheet.selectionKind = 'range';
-  }
-  spreadsheet.mode = 'select';
-  blurActiveCellInput();
-  updateSelectionUI();
 }
 
 function enterEditMode(row, col) {
@@ -375,38 +476,35 @@ function bindCellEvents(input, cell, row, col) {
     }
   });
 
-  cell.addEventListener('click', (event) => {
-    if (event.shiftKey) {
-      enterSelectMode(row, col, true);
+  cell.addEventListener('mousedown', (event) => {
+    if (event.button !== 0) {
       return;
     }
 
-    const activeCell = getActiveCell();
-    const isSameActiveCell =
-      isSingleCellSelection() &&
-      activeCell.row === row &&
-      activeCell.col === col &&
-      spreadsheet.anchor.row === row &&
-      spreadsheet.anchor.col === col;
-
-    if (isSameActiveCell && spreadsheet.mode === 'select') {
-      enterEditMode(row, col);
-      return;
-    }
-
-    enterSelectMode(row, col, false);
+    event.preventDefault();
+    beginDragSelection('cell', row, col, event.shiftKey);
   });
 }
 
 function bindRowHeaderEvents(rowHeader, row) {
-  rowHeader.addEventListener('click', (event) => {
-    setRowSelection(row, event.shiftKey);
+  rowHeader.addEventListener('mousedown', (event) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    beginDragSelection('row', row, 0, event.shiftKey);
   });
 }
 
 function bindColHeaderEvents(colHeader, col) {
-  colHeader.addEventListener('click', (event) => {
-    setColumnSelection(col, event.shiftKey);
+  colHeader.addEventListener('mousedown', (event) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    beginDragSelection('column', 0, col, event.shiftKey);
   });
 }
 
@@ -575,6 +673,7 @@ function initSpreadsheet() {
   renderGrid();
   bindToolbarEvents();
   bindKeyboardEvents();
+  bindDragSelectionEvents();
 }
 
 document.addEventListener('DOMContentLoaded', initSpreadsheet);
