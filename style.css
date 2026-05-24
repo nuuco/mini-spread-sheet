@@ -183,24 +183,18 @@ body {
   white-space: nowrap;
 }
 
-.sheet-panel {
-  position: relative;
+.grid-size-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 6px 6px 0 0;
 }
 
 .grid-size-label {
-  position: absolute;
-  right: 10px;
-  bottom: 8px;
-  z-index: 5;
-  pointer-events: none;
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--color-text-hint);
   white-space: nowrap;
-  padding: 3px 8px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.06);
 }
 
 .toolbar-actions {
@@ -703,11 +697,12 @@ body.help-guide-open {
     gap: 6px;
   }
 
+  .grid-size-footer {
+    padding: 4px 4px 0 0;
+  }
+
   .grid-size-label {
-    right: 8px;
-    bottom: 6px;
     font-size: 0.75rem;
-    padding: 2px 6px;
   }
 
   .help-guide-btn,
