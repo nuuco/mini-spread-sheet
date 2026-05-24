@@ -147,3 +147,13 @@
 > 의도/반영: 하단 버튼 제거. 행·열 헤더 `contextmenu`로 메뉴 표시, `insertRowAt`/`deleteRowAt`/`insertColumnAt`/`deleteColumnAt` 구현. 하단 `5행 × 5열` 라벨(`updateGridSizeLabel`) 추가.
 
 ---
+
+- 프롬프트:
+
+```
+여러 행·열을 선택한 뒤 오른클릭으로 삭제할 수 있게 해줘.
+```
+
+> 의도/반영: 선택된 행/열 범위 내 헤더 오른클릭 시 선택 유지. `deleteSelectedRows`/`deleteSelectedColumns`로 범위 일괄 삭제, 다중 선택 시 메뉴 `행 삭제 (N개)` 표시. 최소 1행·1열은 남김.
+
+---

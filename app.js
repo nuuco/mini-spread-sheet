@@ -31,18 +31,6 @@ const contextMenuState = {
   index: null,
 };
 
-const ROW_CONTEXT_MENU = [
-  { action: 'row-below', label: '아래에 행 추가' },
-  { action: 'row-above', label: '위에 행 추가' },
-  { action: 'row-delete', label: '행 삭제', danger: true },
-];
-
-const COL_CONTEXT_MENU = [
-  { action: 'col-below', label: '아래에 열 추가' },
-  { action: 'col-above', label: '위에 열 추가' },
-  { action: 'col-delete', label: '열 삭제', danger: true },
-];
-
 function createEmptyData(rows, cols) {
   return Array.from({ length: rows }, () => Array(cols).fill(''));
 }
@@ -523,8 +511,12 @@ function bindRowHeaderEvents(rowHeader, row) {
 
   rowHeader.addEventListener('contextmenu', (event) => {
     event.preventDefault();
-    beginDragSelection('row', row, 0, false);
-    endDragSelection();
+
+    if (!isRowInCurrentRowSelection(row)) {
+      beginDragSelection('row', row, 0, event.shiftKey);
+      endDragSelection();
+    }
+
     showContextMenu('row', row, event.clientX, event.clientY);
   });
 }
@@ -541,8 +533,12 @@ function bindColHeaderEvents(colHeader, col) {
 
   colHeader.addEventListener('contextmenu', (event) => {
     event.preventDefault();
-    beginDragSelection('column', 0, col, false);
-    endDragSelection();
+
+    if (!isColInCurrentColumnSelection(col)) {
+      beginDragSelection('column', 0, col, event.shiftKey);
+      endDragSelection();
+    }
+
     showContextMenu('column', col, event.clientX, event.clientY);
   });
 }
@@ -656,6 +652,31 @@ function deleteRowAt(index) {
   saveToLocalStorage();
 }
 
+function deleteSelectedRows() {
+  if (spreadsheet.selectionKind !== 'row') {
+    deleteRowAt(contextMenuState.index ?? spreadsheet.focus.row);
+    return;
+  }
+
+  const bounds = getSelectionBounds();
+  const deleteCount = bounds.rowMax - bounds.rowMin + 1;
+
+  if (deleteCount >= spreadsheet.rows) {
+    spreadsheet.data = [Array(spreadsheet.cols).fill('')];
+    spreadsheet.rows = 1;
+  } else {
+    spreadsheet.data.splice(bounds.rowMin, deleteCount);
+    spreadsheet.rows -= deleteCount;
+  }
+
+  spreadsheet.anchor = { row: 0, col: 0 };
+  spreadsheet.focus = { row: 0, col: 0 };
+  spreadsheet.selectionKind = 'range';
+  clampSelection();
+  renderGrid();
+  saveToLocalStorage();
+}
+
 function insertColumnAt(index) {
   spreadsheet.data.forEach((row) => row.splice(index, 0, ''));
   spreadsheet.cols += 1;
@@ -676,6 +697,86 @@ function deleteColumnAt(index) {
   saveToLocalStorage();
 }
 
+function deleteSelectedColumns() {
+  if (spreadsheet.selectionKind !== 'column') {
+    deleteColumnAt(contextMenuState.index ?? spreadsheet.focus.col);
+    return;
+  }
+
+  const bounds = getSelectionBounds();
+  const deleteCount = bounds.colMax - bounds.colMin + 1;
+
+  if (deleteCount >= spreadsheet.cols) {
+    spreadsheet.data.forEach((row) => {
+      row.length = 0;
+      row.push('');
+    });
+    spreadsheet.cols = 1;
+  } else {
+    spreadsheet.data.forEach((row) => row.splice(bounds.colMin, deleteCount));
+    spreadsheet.cols -= deleteCount;
+  }
+
+  spreadsheet.anchor = { row: 0, col: 0 };
+  spreadsheet.focus = { row: 0, col: 0 };
+  spreadsheet.selectionKind = 'range';
+  clampSelection();
+  renderGrid();
+  saveToLocalStorage();
+}
+
+function getRowContextMenuItems() {
+  const bounds = getSelectionBounds();
+  const isMultiRow =
+    spreadsheet.selectionKind === 'row' && bounds.rowMin !== bounds.rowMax;
+  const count = bounds.rowMax - bounds.rowMin + 1;
+
+  return [
+    { action: 'row-below', label: '아래에 행 추가' },
+    { action: 'row-above', label: '위에 행 추가' },
+    {
+      action: 'row-delete',
+      label: isMultiRow ? `행 삭제 (${count}개)` : '행 삭제',
+      danger: true,
+    },
+  ];
+}
+
+function getColContextMenuItems() {
+  const bounds = getSelectionBounds();
+  const isMultiCol =
+    spreadsheet.selectionKind === 'column' && bounds.colMin !== bounds.colMax;
+  const count = bounds.colMax - bounds.colMin + 1;
+
+  return [
+    { action: 'col-below', label: '아래에 열 추가' },
+    { action: 'col-above', label: '위에 열 추가' },
+    {
+      action: 'col-delete',
+      label: isMultiCol ? `열 삭제 (${count}개)` : '열 삭제',
+      danger: true,
+    },
+  ];
+}
+
+function isRowInCurrentRowSelection(row) {
+  if (spreadsheet.selectionKind !== 'row') {
+    return false;
+  }
+
+  const bounds = getSelectionBounds();
+  return row >= bounds.rowMin && row <= bounds.rowMax;
+}
+
+function isColInCurrentColumnSelection(col) {
+  if (spreadsheet.selectionKind !== 'column') {
+    return false;
+  }
+
+  const bounds = getSelectionBounds();
+  return col >= bounds.colMin && col <= bounds.colMax;
+}
+
 function hideContextMenu() {
   const menu = document.getElementById('context-menu');
   menu.classList.add('hidden');
@@ -685,7 +786,7 @@ function hideContextMenu() {
 
 function showContextMenu(type, index, x, y) {
   const menu = document.getElementById('context-menu');
-  const items = type === 'row' ? ROW_CONTEXT_MENU : COL_CONTEXT_MENU;
+  const items = type === 'row' ? getRowContextMenuItems() : getColContextMenuItems();
 
   menu.replaceChildren(
     ...items.map((item) => {
@@ -718,7 +819,7 @@ function handleContextMenuAction(action) {
     } else if (action === 'row-above') {
       insertRowAt(index);
     } else if (action === 'row-delete') {
-      deleteRowAt(index);
+      deleteSelectedRows();
     }
     return;
   }
@@ -729,7 +830,7 @@ function handleContextMenuAction(action) {
     } else if (action === 'col-above') {
       insertColumnAt(index);
     } else if (action === 'col-delete') {
-      deleteColumnAt(index);
+      deleteSelectedColumns();
     }
   }
 }
