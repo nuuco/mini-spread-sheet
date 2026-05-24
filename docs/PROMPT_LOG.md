@@ -588,3 +588,27 @@ GridRenderer model.cols undefined 오류 / 파비콘·모서리칸 README·AGENT
 > 의도/반영: 메뉴 항목 클릭 시 `mousedown`이 `#context-menu` 밖이라 `clearCellSelection`으로 선택 소멸·삭제가 1열만 됨 → `#context-menu` 제외. `hide()` 후 `state.index` 읽던 버그 → 클릭 전 `index` 보존. range는 우클릭한 헤더가 선택 열/행 안이면 span 전체 적용.
 
 ---
+
+- 프롬프트:
+
+```
+README·요구사항 문서에 적힌 기능을 기준으로 앱 전체를 점검해 줘.
+문제가 있으면 바로 고치지 말고, 항목별로 무엇이 잘못됐는지 목록으로 정리해 줘.
+Jest처럼 테스트 파일을 repo에 추가하는 방식 말고, 체크리스트·브라우저 확인 등 다른 검증 방법이 있으면 그걸 써 줘.
+```
+
+> 의도/반영: README·PRD·SRD·가이드 모달 기준으로 기능 체크리스트를 만들고, **수동 확인 + 코드 대조 + 저장소 밖 일회성 Playwright**로 검증(repo에 테스트 스위트 추가 없음). 대부분 정상(그리드·좌표·선택·undo·붙여넣기·Export·저장·컨텍스트 메뉴 등). **버그**: 선택 모드에서 Enter 시 편집 대신 아래 셀로 이동. **UX**: 사용 가이드 모달이 열린 상태에서도 방향키로 뒤쪽 그리드 선택이 바뀜. **문서**: PRD/SRD의 빈 제목 파일명(`spreadsheet`)·모바일 미지원 문구가 현재 구현과 다름. 당시에는 수정 없이 보고만 함.
+
+---
+
+- 프롬프트:
+
+```
+셀을 선택만 한 상태에서 Enter를 누르면 편집이 시작되어야 하는데, 지금은 아래 칸으로만 내려가.
+원하는 동작은 「선택 모드 + Enter → 편집」, 「편집 모드 + Enter → 아래 셀」이야.
+선택만 했는데 셀 안에 입력 커서(캐럿)가 보이는 이유도 설명해 주고, 동작이 맞게 보이도록 고쳐 줘.
+```
+
+> 의도/반영: **Enter** — 셀 `textarea`가 선택 모드에서 Enter를 가로채지 않도록 `model.mode !== 'edit'`이면 핸들러에서 return → document 쪽 `enterEditMode`가 실행됨. 편집 중 Enter는 기존처럼 `finishEditAndMoveDown`. **캐럿** — 한글 IME·선택 후 바로 입력을 위해 활성 셀은 포커스·`readOnly` 해제를 유지하고, 선택 모드일 때만 CSS로 캐럿을 숨김(`caret-color: transparent`), 편집 모드에서 다시 표시. AGENTS.md 반영.
+
+---

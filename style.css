@@ -422,6 +422,12 @@ body {
   position: relative;
 }
 
+/* 선택 모드: IME 입력을 위해 readOnly 해제·포커스는 유지하되 캐럿은 숨김 */
+.cell.active-cell:not(.editing) .cell-input {
+  caret-color: transparent;
+  cursor: default;
+}
+
 .cell-input {
   width: 100%;
   height: var(--grid-row-height);
@@ -468,6 +474,7 @@ body {
   min-height: 0;
   box-sizing: border-box;
   cursor: text;
+  caret-color: var(--color-accent);
   background: var(--color-bg-surface);
   border: 2px solid var(--color-accent-strong);
   box-shadow: var(--shadow-edit);

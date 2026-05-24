@@ -251,6 +251,10 @@ export class GridRenderer {
       if (isComposingInput(event) || GridRenderer.isInputComposing(event.target, event)) {
         return;
       }
+      // 선택 모드: document 핸들러(SpreadsheetApp)가 Enter → 편집 진입 처리
+      if (app.model.mode !== 'edit') {
+        return;
+      }
       if (isNewlineShortcut(event)) {
         event.preventDefault();
         event.stopPropagation();
