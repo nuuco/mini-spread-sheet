@@ -555,6 +555,6 @@ GridRenderer model.cols undefined 오류 / 파비콘·모서리칸 README·AGENT
 셀에 한글 쓰고 Enter 치면 다음 셀에 글자가 남고, 조합도 깨져. 값 있는 셀은 덮어써야 하는데 뒤에 붙고, 첫 글자만 조합이 안 돼서 다시 쳐야 한다고 반복 피드백했음. (최종 확인: 해결됨)
 ```
 
-> 의도/반영: **Enter** — 조합 중(`isComposing`·229) Enter 무시·셀에서 `stopPropagation`·편집 중 document 단축키와 분리(`isEditingCellInputEvent`는 `.cell.editing`만). **조합 중단** — `layoutEditingInput`·모델 동기화를 `compositionstart`~`end`·`imeComposing` 동안 스킵, `syncInputEditState`에서 편집 중 fixed 레이아웃 호출 제거. **선택→입력** — 활성 셀만 `readOnly` 해제·포커스 유지; `beforeinput`·IME `keydown`에서 `prepareCellEditFromInput`(기존 값 clear·`select()` 없음·조합 예상 시에만 `imeComposing`)으로 덮어쓰기·첫 자모 조합 보장. 완성 음절 한 글자·영문은 `startTyping` 유지.
+> 의도/반영: **Enter** — 조합 중(`isComposing`·229) Enter 무시·셀에서 `stopPropagation`·편집 중 document 단축키와 분리(`isEditingCellInputEvent`는 `.cell.editing`만). **조합 중단** — `layoutEditingInput`·모델 동기화를 `compositionstart`~`end`·`imeComposing` 동안 스킵, `syncInputEditState`에서 편집 중 fixed 레이아웃 호출 제거. **선택→입력** — 활성 셀만 `readOnly` 해제·포커스 유지; `beforeinput`·IME `keydown`에서 `prepareCellEditFromInput`(기존 값 clear·`select()` 없음·조합 예상 시에만 `imeComposing`)으로 덮어쓰기·첫 자모 조합 보장. 상세는 `docs/TROUBLESHOOTING_KOREAN_IME.md`·README 링크.
 
 ---

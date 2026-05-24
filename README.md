@@ -2,7 +2,8 @@
 
 JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 셀 입력, 범위·행·열·전체 시트 선택, 포커스 좌표 표시, 행/열 헤더 하이라이트, 데이터 수집, Excel(.xlsx) Export, 실행 취소·다시 실행, 복사·붙여넣기, localStorage 자동 저장을 제공합니다.
 
-요구사항 문서: [docs/PRD.md](docs/PRD.md) · [docs/SRD.md](docs/SRD.md) · [docs/TRD.md](docs/TRD.md)
+요구사항 문서: [docs/PRD.md](docs/PRD.md) · [docs/SRD.md](docs/SRD.md) · [docs/TRD.md](docs/TRD.md)  
+트러블슈팅: [docs/TROUBLESHOOTING_KOREAN_IME.md](docs/TROUBLESHOOTING_KOREAN_IME.md) (한글 IME)
 
 ## 기능 목록 (요약)
 
@@ -32,7 +33,7 @@ JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 
 
 | 동작 | 설명 |
 |------|------|
-| **1번 클릭** | 셀 **선택** (편집 모드 아님, `textarea`는 읽기 전용) |
+| **1번 클릭** | 셀 **선택** (편집 모드 아님; 활성 셀만 포커스·IME 입력 가능, 나머지 셀 `textarea`는 읽기 전용) |
 | **Enter** (선택 모드) | **편집 모드** 진입 |
 | **같은 셀 다시 클릭** | **편집 모드** 진입 (커서·전체 선택 가능) |
 | **드래그** | 여러 셀 **범위 선택** (`Selection: A1:C3` 형식 표시) |
@@ -45,6 +46,11 @@ JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 
 | **Cmd/Ctrl + Enter** | 편집 중 셀 **안에서 줄바꿈** |
 
 단일 셀만 선택했을 때는 해당 **행·열 전체**에 연한 하늘색 배경(`highlight-row` / `highlight-col`)이 들어가 스프레드시트처럼 위치를 파악하기 쉽습니다.
+
+### 한글 입력 (IME)
+
+한글은 브라우저 IME 조합을 그대로 쓰며, 선택 후 타이핑 시 **셀 전체를 덮어씁니다**. 조합 중에는 셀 레이아웃을 바꾸지 않도록 처리했습니다.  
+증상·원인·검증 방법은 **[docs/TROUBLESHOOTING_KOREAN_IME.md](docs/TROUBLESHOOTING_KOREAN_IME.md)** 를 참고하세요.
 
 ### 행·열·전체 시트 선택
 
@@ -176,6 +182,8 @@ const CONFIG = {
 ├── README.md
 ├── AGENTS.md
 ├── docs/
+│   ├── PRD.md · SRD.md · TRD.md
+│   └── TROUBLESHOOTING_KOREAN_IME.md
 └── exports/
 ```
 
