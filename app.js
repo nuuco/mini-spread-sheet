@@ -1387,8 +1387,38 @@ function isColInCurrentColumnSelection(col) {
 function hideContextMenu() {
   const menu = document.getElementById('context-menu');
   menu.classList.add('hidden');
+  menu.style.visibility = '';
   contextMenuState.type = null;
   contextMenuState.index = null;
+}
+
+function positionContextMenu(menu, x, y, type, index) {
+  menu.classList.remove('hidden');
+  menu.style.visibility = 'hidden';
+  menu.style.left = '0';
+  menu.style.top = '0';
+
+  const menuWidth = menu.offsetWidth;
+  const menuHeight = menu.offsetHeight;
+  const padding = 8;
+
+  let left = x;
+  let top = y;
+
+  if (type === 'column' && index === spreadsheet.cols - 1) {
+    left = x - menuWidth;
+  }
+
+  if (type === 'row' && index === spreadsheet.rows - 1) {
+    top = y - menuHeight;
+  }
+
+  left = Math.max(padding, Math.min(left, window.innerWidth - menuWidth - padding));
+  top = Math.max(padding, Math.min(top, window.innerHeight - menuHeight - padding));
+
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+  menu.style.visibility = '';
 }
 
 function showContextMenu(type, index, x, y) {
@@ -1411,9 +1441,7 @@ function showContextMenu(type, index, x, y) {
   contextMenuState.type = type;
   contextMenuState.index = index;
 
-  menu.classList.remove('hidden');
-  menu.style.left = `${x}px`;
-  menu.style.top = `${y}px`;
+  positionContextMenu(menu, x, y, type, index);
 }
 
 function handleContextMenuAction(action) {

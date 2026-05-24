@@ -9,3 +9,4 @@
 - 문서 작성: README.md, PROMPT_LOG.md, 디렉터리 구조(screenshots, exports)
 - 붙여넣기 개선: HTML 테이블·TSV·마크다운 표 파싱, 구분선 행 스킵
 - 실행 취소/다시 실행: undo/redo 스택, Cmd/Ctrl+Z·Shift+Z·Ctrl+Y 단축키
+- 컨텍스트 메뉴 위치: 마지막 행·열 오른클릭 시 위·왼쪽으로 표시
