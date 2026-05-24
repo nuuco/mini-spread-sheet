@@ -43,6 +43,14 @@ export function isNewlineShortcut(event) {
   return event.metaKey || event.ctrlKey;
 }
 
+export function isComposingInput(event) {
+  return event.isComposing || event.keyCode === 229;
+}
+
+export function isCellInputEvent(event) {
+  return Boolean(event.target.closest('.cell-input'));
+}
+
 export function isMacLikePlatform() {
   if (typeof navigator === 'undefined') {
     return false;

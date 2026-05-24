@@ -1,5 +1,5 @@
 import { columnIndexToLabel, formatCellAddress } from '../utils/cellAddress.js';
-import { isNewlineShortcut } from '../utils/keyboard.js';
+import { isComposingInput, isNewlineShortcut } from '../utils/keyboard.js';
 import {
   EDITING_INPUT_EXPAND_PADDING,
   EDITING_INPUT_MAX_HEIGHT,
@@ -160,17 +160,26 @@ export class GridRenderer {
       app.handleCellInput(row, col, event.target.value);
     });
 
+    input.addEventListener('compositionend', (event) => {
+      app.handleCellInput(row, col, event.target.value);
+    });
+
     input.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter') {
         return;
       }
+      if (isComposingInput(event)) {
+        return;
+      }
       if (isNewlineShortcut(event)) {
         event.preventDefault();
+        event.stopPropagation();
         GridRenderer.insertNewlineAtCursor(event.target);
         app.handleCellInput(row, col, event.target.value);
         return;
       }
       event.preventDefault();
+      event.stopPropagation();
       app.finishEditAndMoveDown(row, col);
     });
 

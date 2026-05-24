@@ -4,6 +4,8 @@ import {
   getArrowDelta,
   getRedoShortcutLabel,
   getUndoShortcutLabel,
+  isCellInputEvent,
+  isComposingInput,
   isCopyShortcut,
   isGridKeyboardTarget,
   isPasteShortcut,
@@ -144,6 +146,12 @@ export class SpreadsheetApp {
 
     document.addEventListener('keydown', (event) => {
       if (!isGridKeyboardTarget(event)) {
+        return;
+      }
+      if (isComposingInput(event)) {
+        return;
+      }
+      if (isCellInputEvent(event)) {
         return;
       }
 
