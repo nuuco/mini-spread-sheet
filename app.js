@@ -1149,21 +1149,42 @@ function collectSpreadsheetData() {
   return spreadsheet.data.map((row) => [...row]);
 }
 
-function escapeCsvField(value) {
-  const text = value ?? '';
-  if (/[",\r\n]/.test(text)) {
-    return `"${text.replace(/"/g, '""')}"`;
-  }
-  return text;
+function escapeXml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
-function buildCsvContent(data) {
-  const lines = data.map((row) => row.map(escapeCsvField).join(','));
-  return `\uFEFF${lines.join('\r\n')}`;
+function buildExcelXmlContent(data) {
+  const rows = data
+    .map((row) => {
+      const cells = row
+        .map(
+          (cell) =>
+            `<Cell><Data ss:Type="String">${escapeXml(cell)}</Data></Cell>`,
+        )
+        .join('');
+      return `<Row>${cells}</Row>`;
+    })
+    .join('');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <Worksheet ss:Name="Sheet1">
+  <Table>${rows}</Table>
+ </Worksheet>
+</Workbook>`;
 }
 
-function downloadCsv(filename, content) {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+function downloadFile(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -1174,8 +1195,12 @@ function downloadCsv(filename, content) {
 
 function exportSpreadsheet() {
   const data = collectSpreadsheetData();
-  const csvContent = buildCsvContent(data);
-  downloadCsv('spreadsheet.csv', csvContent);
+  const excelContent = buildExcelXmlContent(data);
+  downloadFile(
+    'spreadsheet.xls',
+    excelContent,
+    'application/vnd.ms-excel;charset=utf-8',
+  );
 }
 
 function insertRowAt(index) {

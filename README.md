@@ -11,7 +11,7 @@ JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 
 3. **현재 포커스 좌표 표시** — 상단 `Cell: C1` 형식으로 표시
 4. **행/열 헤더 하이라이트** — 선택 셀의 열·행 헤더 동시 강조
 5. **데이터 구조화 수집** — 2차원 배열 `string[][]` 형태로 수집
-6. **Export 기능** — CSV 파일(`spreadsheet.csv`) 다운로드 (Excel·Google Sheets 호환)
+6. **Export 기능** — Excel 파일(`spreadsheet.xls`) 다운로드 (Excel에서 바로 열기 가능)
 
 ### 선택 기능
 
@@ -42,8 +42,8 @@ const CONFIG = {
 ## Export 및 Google Sheets 검증
 
 1. 스프레드시트에 데이터 입력
-2. **Export Excel** 버튼 클릭 → `spreadsheet.csv` 다운로드
-3. Excel에서 열거나, [Google Sheets](https://sheets.google.com) → **파일 → 가져오기 → 업로드** 로 CSV 업로드
+2. **Export Excel** 버튼 클릭 → `spreadsheet.xls` 다운로드
+3. Excel에서 열거나, [Google Sheets](https://sheets.google.com) → **파일 → 가져오기 → 업로드** 로 업로드
 4. 데이터 위치가 그리드와 동일한지 확인
 
 ## 파일 구조
@@ -58,7 +58,7 @@ const CONFIG = {
 │   ├── PROMPT_LOG.md
 │   └── screenshots/ # (수동) 캡처 저장
 └── exports/
-    └── spreadsheet.csv # (수동) Export 샘플
+    └── spreadsheet.xls # (수동) Export 샘플
 ```
 
 ## app.js 주요 함수
@@ -69,7 +69,7 @@ const CONFIG = {
 | `renderGrid()` | 그리드 DOM 생성 |
 | `setFocus()` | 포커스 상태 및 UI 동기화 |
 | `collectSpreadsheetData()` | 2D 배열 데이터 반환 |
-| `exportSpreadsheet()` | CSV 다운로드 |
+| `exportSpreadsheet()` | Excel(.xls) 다운로드 |
 | `saveToLocalStorage()` / `loadFromLocalStorage()` | 자동 저장/복원 |
 | `addRow()` / `removeRow()` / `addColumn()` / `removeColumn()` | 행·열 조작 |
 
@@ -78,7 +78,7 @@ const CONFIG = {
 - [ ] 표 화면이 정상적으로 잘 나오나요?
 - [ ] 칸마다 텍스트 입력이 잘 되나요?
 - [ ] 셀을 누르면 좌표가 잘 바뀌고 가로/세로 헤더가 동시에 강조되나요?
-- [ ] CSV 파일이 정상적으로 만들어지고 Google Sheets에 올렸을 때도 잘 연동되나요?
+- [ ] Excel 파일이 정상적으로 만들어지고 Google Sheets에 올렸을 때도 잘 연동되나요?
 - [ ] 코드 파일이 HTML/CSS/JS로 분리되어 있나요?
 - [ ] README와 AI 프롬프트 로그(`docs/PROMPT_LOG.md`)를 포함했나요?
 

@@ -279,3 +279,13 @@ Cmd+Enter(윈도우는 Ctrl+Enter)로 넣은 줄바꿈만 여러 줄로 보이�
 > 의도/반영: `positionContextMenu` — 마지막 열은 `left = x - menuWidth`, 마지막 행은 `top = y - menuHeight`. 뷰포트 밖으로 나가지 않도록 여백 클램프.
 
 ---
+
+- 프롬프트:
+
+```
+엑셀로 저장하는 버튼인데 csv 로 저장되는거 같아. .xls로 내보내도록 수정해.
+```
+
+> 의도/반영: `buildExcelXmlContent`로 SpreadsheetML 생성, `spreadsheet.xls` 다운로드(`application/vnd.ms-excel`). Excel에서 바로 열림.
+
+---
