@@ -214,6 +214,16 @@
 입력 중 Enter면 아래 셀로 이동, Cmd+Enter면 셀 안에서 개행.
 ```
 
-> 의도/반영: 셀 입력을 `textarea`로 변경. `Enter` → `finishEditAndMoveDown()`으로 아래 셀 선택, `Cmd+Enter` → `insertNewlineAtCursor()`로 셀 내 줄바꿈.
+> 의도/반영: 셀 입력을 `textarea`로 변경. `Enter` → 아래 셀 이동, `Cmd/Ctrl+Enter` → 셀 내 줄바꿈. 그 외는 `nowrap` 한 줄 표시, 붙여넣기 개행은 공백으로 치환.
+
+---
+
+- 프롬프트:
+
+```
+Cmd+Enter(Windows는 Ctrl+Enter)로 개행한 경우만 여러 줄, 그 외에는 한 줄로 표시·입력되게 해줘.
+```
+
+> 의도/반영: 개행 단축키 `metaKey || ctrlKey` 통일. `.cell-input` 기본 `nowrap`, `\n` 있을 때만 `.multiline`·`pre-wrap`. 붙여넣기 줄바꿈은 공백으로 변환.
 
 ---

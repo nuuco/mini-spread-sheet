@@ -167,6 +167,7 @@ function syncInputEditState() {
     const input = cell.querySelector('.cell-input');
     if (input) {
       input.readOnly = !editing;
+      updateCellInputLayout(input);
     }
   });
 }
@@ -552,12 +553,30 @@ function loadFromLocalStorage() {
   }
 }
 
+function updateCellInputLayout(input) {
+  input.classList.toggle('multiline', input.value.includes('\n'));
+}
+
 function insertNewlineAtCursor(field) {
   const start = field.selectionStart;
   const end = field.selectionEnd;
   field.value = `${field.value.slice(0, start)}\n${field.value.slice(end)}`;
   field.selectionStart = start + 1;
   field.selectionEnd = start + 1;
+  updateCellInputLayout(field);
+}
+
+function isNewlineShortcut(event) {
+  return event.metaKey || event.ctrlKey;
+}
+
+function insertTextAtCursor(field, text) {
+  const start = field.selectionStart;
+  const end = field.selectionEnd;
+  field.value = `${field.value.slice(0, start)}${text}${field.value.slice(end)}`;
+  const cursor = start + text.length;
+  field.selectionStart = cursor;
+  field.selectionEnd = cursor;
 }
 
 function finishEditAndMoveDown(row, col) {
@@ -577,13 +596,25 @@ function finishEditAndMoveDown(row, col) {
 }
 
 function bindCellEvents(input, cell, row, col) {
-  input.addEventListener('input', (event) => onCellInput(row, col, event.target.value));
+  input.addEventListener('input', (event) => {
+    updateCellInputLayout(event.target);
+    onCellInput(row, col, event.target.value);
+  });
+
+  input.addEventListener('paste', (event) => {
+    event.preventDefault();
+    const pastedText = event.clipboardData.getData('text/plain').replace(/\r?\n/g, ' ');
+    insertTextAtCursor(event.target, pastedText);
+    updateCellInputLayout(event.target);
+    onCellInput(row, col, event.target.value);
+  });
+
   input.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') {
       return;
     }
 
-    if (event.metaKey) {
+    if (isNewlineShortcut(event)) {
       event.preventDefault();
       insertNewlineAtCursor(event.target);
       onCellInput(row, col, event.target.value);
@@ -701,6 +732,7 @@ function renderGrid() {
       input.rows = 1;
       input.value = spreadsheet.data[row][col] ?? '';
       input.setAttribute('aria-label', formatCellAddress(row, col));
+      updateCellInputLayout(input);
 
       bindCellEvents(input, cell, row, col);
       cell.appendChild(input);
