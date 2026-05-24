@@ -110,6 +110,15 @@ export class SpreadsheetApp {
         this.clearSelectedContent();
         return;
       }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const { row, col } = this.model.getActiveCell();
+        this.model.anchor = { row, col };
+        this.model.focus = { row, col };
+        this.model.selectionKind = 'range';
+        this.enterEditMode(row, col);
+        return;
+      }
       if (!isTypingKey(event)) {
         return;
       }
@@ -433,7 +442,7 @@ export class SpreadsheetApp {
   }
 
   enterEditMode(row, col) {
-    if (!this.model.isCellInSelection(row, col) || !this.model.isSingleCellSelection()) {
+    if (!this.model.isCellInSelection(row, col)) {
       return;
     }
 

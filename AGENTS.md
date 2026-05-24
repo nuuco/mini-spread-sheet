@@ -24,3 +24,4 @@
 - OOP·ES 모듈 리팩터링: app.js → js/ (SpreadsheetApp, Model, UI·services), 미사용 insertRowAt/insertColumnAt 제거
 - GridRenderer.render 버그 수정: model을 this가 아닌 app.model에서 참조
 - Export 빈 제목: 파일명·시트탭에 제목없음 사용 (spreadsheet/Sheet1 fallback 제거)
+- 선택 모드 Enter: 편집 모드 진입 (편집 중 Enter는 아래 셀 이동 유지)
