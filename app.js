@@ -184,6 +184,38 @@ function enterEditMode(row, col) {
   input?.select();
 }
 
+function startTypingInActiveCell(char) {
+  const { row, col } = spreadsheet.focus;
+
+  spreadsheet.anchor = { row, col };
+  spreadsheet.focus = { row, col };
+  spreadsheet.selectionKind = 'range';
+  spreadsheet.data[row][col] = char;
+
+  const input = getCellInput(row, col);
+  if (input) {
+    input.value = char;
+  }
+
+  spreadsheet.mode = 'edit';
+  updateSelectionUI();
+  input?.focus();
+  input?.setSelectionRange(char.length, char.length);
+  scheduleSaveToLocalStorage();
+}
+
+function isTypingKey(event) {
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    return false;
+  }
+
+  return event.key.length === 1;
+}
+
+function isGridKeyboardTarget(event) {
+  return !event.target.closest('.controls') && !event.target.closest('.toolbar');
+}
+
 function clearSelectedCellContent() {
   const bounds = getSelectionBounds();
 
@@ -465,20 +497,26 @@ function removeColumn() {
 
 function bindKeyboardEvents() {
   document.addEventListener('keydown', (event) => {
-    if (spreadsheet.mode !== 'select') {
+    if (!isGridKeyboardTarget(event)) {
       return;
     }
 
-    if (event.key !== 'Backspace') {
+    if (spreadsheet.mode === 'edit') {
       return;
     }
 
-    if (event.target.closest('.controls') || event.target.closest('.toolbar')) {
+    if (event.key === 'Backspace') {
+      event.preventDefault();
+      clearSelectedCellContent();
+      return;
+    }
+
+    if (!isTypingKey(event)) {
       return;
     }
 
     event.preventDefault();
-    clearSelectedCellContent();
+    startTypingInActiveCell(event.key);
   });
 }
 
