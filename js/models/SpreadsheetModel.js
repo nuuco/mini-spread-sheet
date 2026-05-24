@@ -250,6 +250,7 @@ export class SpreadsheetModel {
     const newRows = Array.from({ length: count }, () => Array(this.cols).fill(''));
     this.data.splice(index, 0, ...newRows);
     this.rows += count;
+    this.shiftSelectionForRowInsert(index, count);
     this.clampSelection();
   }
 
@@ -267,13 +268,14 @@ export class SpreadsheetModel {
     if (deleteCount >= this.rows) {
       this.data = [Array(this.cols).fill('')];
       this.rows = 1;
+      this.anchor = { row: 0, col: 0 };
+      this.focus = { row: 0, col: 0 };
+      this.selectionKind = 'range';
     } else {
       this.data.splice(rowMin, deleteCount);
       this.rows -= deleteCount;
+      this.shiftSelectionForRowDelete(rowMin, deleteCount);
     }
-    this.anchor = { row: 0, col: 0 };
-    this.focus = { row: 0, col: 0 };
-    this.selectionKind = 'range';
     this.clampSelection();
   }
 
@@ -282,6 +284,7 @@ export class SpreadsheetModel {
       row.splice(index, 0, ...Array(count).fill(''));
     });
     this.cols += count;
+    this.shiftSelectionForColumnInsert(index, count);
     this.clampSelection();
   }
 
@@ -302,55 +305,166 @@ export class SpreadsheetModel {
         row.push('');
       });
       this.cols = 1;
+      this.anchor = { row: 0, col: 0 };
+      this.focus = { row: 0, col: 0 };
+      this.selectionKind = 'range';
     } else {
       this.data.forEach((row) => row.splice(colMin, deleteCount));
       this.cols -= deleteCount;
+      this.shiftSelectionForColumnDelete(colMin, deleteCount);
     }
-    this.anchor = { row: 0, col: 0 };
-    this.focus = { row: 0, col: 0 };
-    this.selectionKind = 'range';
     this.clampSelection();
   }
 
+  getRowSpanForHeaderMenu(contextIndex) {
+    const bounds = this.getSelectionBounds();
+    const row = contextIndex ?? bounds?.rowMin ?? 0;
+    if (!bounds) {
+      return { rowMin: row, rowMax: row, count: 1 };
+    }
+    if (this.selectionKind === 'row') {
+      return {
+        rowMin: bounds.rowMin,
+        rowMax: bounds.rowMax,
+        count: bounds.rowMax - bounds.rowMin + 1,
+      };
+    }
+    if (
+      this.selectionKind === 'range' &&
+      row >= bounds.rowMin &&
+      row <= bounds.rowMax
+    ) {
+      return {
+        rowMin: bounds.rowMin,
+        rowMax: bounds.rowMax,
+        count: bounds.rowMax - bounds.rowMin + 1,
+      };
+    }
+    return { rowMin: row, rowMax: row, count: 1 };
+  }
+
+  getColumnSpanForHeaderMenu(contextIndex) {
+    const bounds = this.getSelectionBounds();
+    const col = contextIndex ?? bounds?.colMin ?? 0;
+    if (!bounds) {
+      return { colMin: col, colMax: col, count: 1 };
+    }
+    if (this.selectionKind === 'column') {
+      return {
+        colMin: bounds.colMin,
+        colMax: bounds.colMax,
+        count: bounds.colMax - bounds.colMin + 1,
+      };
+    }
+    if (
+      this.selectionKind === 'range' &&
+      col >= bounds.colMin &&
+      col <= bounds.colMax
+    ) {
+      return {
+        colMin: bounds.colMin,
+        colMax: bounds.colMax,
+        count: bounds.colMax - bounds.colMin + 1,
+      };
+    }
+    return { colMin: col, colMax: col, count: 1 };
+  }
+
   isRowInSelection(row) {
-    if (this.selectionKind !== 'row') {
+    const bounds = this.getSelectionBounds();
+    if (!bounds) {
       return false;
     }
-    const bounds = this.getSelectionBounds();
-    return row >= bounds.rowMin && row <= bounds.rowMax;
+    if (this.selectionKind === 'row') {
+      return row >= bounds.rowMin && row <= bounds.rowMax;
+    }
+    if (this.selectionKind === 'range') {
+      return row >= bounds.rowMin && row <= bounds.rowMax;
+    }
+    return false;
   }
 
   isColumnInSelection(col) {
-    if (this.selectionKind !== 'column') {
+    const bounds = this.getSelectionBounds();
+    if (!bounds) {
       return false;
     }
-    const bounds = this.getSelectionBounds();
-    return col >= bounds.colMin && col <= bounds.colMax;
+    if (this.selectionKind === 'column') {
+      return col >= bounds.colMin && col <= bounds.colMax;
+    }
+    if (this.selectionKind === 'range') {
+      return col >= bounds.colMin && col <= bounds.colMax;
+    }
+    return false;
+  }
+
+  shiftSelectionForRowInsert(insertIndex, count) {
+    if (!this.hasSelection()) {
+      return;
+    }
+    const shift = (row) => (row >= insertIndex ? row + count : row);
+    this.anchor = { ...this.anchor, row: shift(this.anchor.row) };
+    this.focus = { ...this.focus, row: shift(this.focus.row) };
+  }
+
+  shiftSelectionForColumnInsert(insertIndex, count) {
+    if (!this.hasSelection()) {
+      return;
+    }
+    const shift = (col) => (col >= insertIndex ? col + count : col);
+    this.anchor = { ...this.anchor, col: shift(this.anchor.col) };
+    this.focus = { ...this.focus, col: shift(this.focus.col) };
+  }
+
+  shiftSelectionForRowDelete(deleteIndex, deleteCount) {
+    if (!this.hasSelection()) {
+      return;
+    }
+    const adjust = (row) => {
+      if (row >= deleteIndex + deleteCount) {
+        return row - deleteCount;
+      }
+      if (row >= deleteIndex) {
+        return Math.max(0, deleteIndex - 1);
+      }
+      return row;
+    };
+    this.anchor = { ...this.anchor, row: adjust(this.anchor.row) };
+    this.focus = { ...this.focus, row: adjust(this.focus.row) };
+  }
+
+  shiftSelectionForColumnDelete(deleteIndex, deleteCount) {
+    if (!this.hasSelection()) {
+      return;
+    }
+    const adjust = (col) => {
+      if (col >= deleteIndex + deleteCount) {
+        return col - deleteCount;
+      }
+      if (col >= deleteIndex) {
+        return Math.max(0, deleteIndex - 1);
+      }
+      return col;
+    };
+    this.anchor = { ...this.anchor, col: adjust(this.anchor.col) };
+    this.focus = { ...this.focus, col: adjust(this.focus.col) };
   }
 
   getRowInsertContext(contextIndex) {
-    const bounds = this.getSelectionBounds();
-    if (!bounds) {
-      const index = contextIndex ?? 0;
-      return { count: 1, aboveIndex: index, belowIndex: index + 1 };
-    }
-    const count = this.selectionKind === 'row' ? bounds.rowMax - bounds.rowMin + 1 : 1;
-    const aboveIndex = this.selectionKind === 'row' ? bounds.rowMin : (contextIndex ?? 0);
-    const belowIndex =
-      this.selectionKind === 'row' ? bounds.rowMax + 1 : (contextIndex ?? 0) + 1;
-    return { count, aboveIndex, belowIndex };
+    const span = this.getRowSpanForHeaderMenu(contextIndex);
+    return {
+      count: span.count,
+      aboveIndex: span.rowMin,
+      belowIndex: span.rowMax + 1,
+    };
   }
 
   getColumnInsertContext(contextIndex) {
-    const bounds = this.getSelectionBounds();
-    if (!bounds) {
-      const index = contextIndex ?? 0;
-      return { count: 1, leftIndex: index, rightIndex: index + 1 };
-    }
-    const count = this.selectionKind === 'column' ? bounds.colMax - bounds.colMin + 1 : 1;
-    const leftIndex = this.selectionKind === 'column' ? bounds.colMin : (contextIndex ?? 0);
-    const rightIndex =
-      this.selectionKind === 'column' ? bounds.colMax + 1 : (contextIndex ?? 0) + 1;
-    return { count, leftIndex, rightIndex };
+    const span = this.getColumnSpanForHeaderMenu(contextIndex);
+    return {
+      count: span.count,
+      leftIndex: span.colMin,
+      rightIndex: span.colMax + 1,
+    };
   }
 }

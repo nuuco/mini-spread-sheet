@@ -568,3 +568,23 @@ GridRenderer model.cols undefined 오류 / 파비콘·모서리칸 README·AGENT
 > 의도/반영: **높이 증가** — `layoutEditingInput`이 남긴 인라인 `height`가 `resetEditingInputLayout`에서 안 지워져 행이 커진 뒤 재클릭마다 `cellRect`가 커짐 → `height`/`visibility` 초기화·`layoutEditingInput` 전 reset·`needsEditingOverlay`(줄바꿈·긴 글만 fixed 오버레이). **하단 이중선** — 셀 36px에 편집 border 2px·`line-height` 34px 불일치로 input이 셀을 못 채움 → `--grid-row-height`·`.cell.editing .cell-input` `inset:0`·`line-height: calc(row - 4px)`. AGENTS.md 반영.
 
 ---
+
+- 프롬프트:
+
+```
+행, 열 추가, 삭제 로직 재점검. 빈 행/열 추가·선택 기준(B~C 왼쪽 2열 등). 개수도 안 맞음 확인했으면 수정 진행.
+```
+
+> 의도/반영: `getColumnSpanForHeaderMenu`/`getRowSpanForHeaderMenu`로 개수·삽입 위치 통일(열/행 헤더 선택·전체 높이/너비 range). 왼쪽/위 삽입 후 선택 인덱스 shift. 다중 삭제·메뉴 `(N개)` 동일 span 사용. 헤더 우클릭 시 span 안이면 선택 유지.
+
+---
+
+- 프롬프트:
+
+```
+아냐 전혀 해결 안되었어. 일단 여러개 한번에 없애는거가 안되고 있어.
+```
+
+> 의도/반영: 메뉴 항목 클릭 시 `mousedown`이 `#context-menu` 밖이라 `clearCellSelection`으로 선택 소멸·삭제가 1열만 됨 → `#context-menu` 제외. `hide()` 후 `state.index` 읽던 버그 → 클릭 전 `index` 보존. range는 우클릭한 헤더가 선택 열/행 안이면 span 전체 적용.
+
+---

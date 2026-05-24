@@ -17,9 +17,9 @@ export class ContextMenu {
       if (!button) {
         return;
       }
-      const { type } = this.state;
+      const { type, index } = this.state;
       this.hide();
-      this.onAction(type, button.dataset.action, this.state.index);
+      this.onAction(type, button.dataset.action, index);
     });
 
     document.addEventListener('click', (event) => {
@@ -38,22 +38,18 @@ export class ContextMenu {
     window.addEventListener('resize', () => this.hide());
   }
 
-  getRowItems() {
-    const bounds = this.model.getSelectionBounds();
-    const count =
-      this.model.selectionKind === 'row' ? bounds.rowMax - bounds.rowMin + 1 : 1;
+  getRowItems(index) {
+    const { count } = this.model.getRowSpanForHeaderMenu(index);
     const countLabel = count > 1 ? ` ${count}개` : '';
     return [
-      { action: 'row-below', label: `아래에 행${countLabel} 추가` },
       { action: 'row-above', label: `위에 행${countLabel} 추가` },
+      { action: 'row-below', label: `아래에 행${countLabel} 추가` },
       { action: 'row-delete', label: count > 1 ? `행 삭제 (${count}개)` : '행 삭제', danger: true },
     ];
   }
 
-  getColItems() {
-    const bounds = this.model.getSelectionBounds();
-    const count =
-      this.model.selectionKind === 'column' ? bounds.colMax - bounds.colMin + 1 : 1;
+  getColItems(index) {
+    const { count } = this.model.getColumnSpanForHeaderMenu(index);
     const countLabel = count > 1 ? ` ${count}개` : '';
     return [
       { action: 'col-left', label: `왼쪽에 열${countLabel} 추가` },
@@ -77,7 +73,7 @@ export class ContextMenu {
       return;
     }
 
-    const items = type === 'row' ? this.getRowItems() : this.getColItems();
+    const items = type === 'row' ? this.getRowItems(index) : this.getColItems(index);
     this.menu.replaceChildren(
       ...items.map((item) => {
         const button = document.createElement('button');

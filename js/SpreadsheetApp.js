@@ -131,6 +131,7 @@ export class SpreadsheetApp {
         }
         if (
           !event.target.closest('#spreadsheet') &&
+          !event.target.closest('#context-menu') &&
           !event.target.closest('#help-guide-modal') &&
           !event.target.closest('#help-guide-btn') &&
           !event.target.closest('.toolbar-history')
@@ -891,24 +892,22 @@ export class SpreadsheetApp {
 
   deleteRows(contextIndex) {
     const { model } = this;
-    if (model.selectionKind !== 'row') {
-      this.mutateGrid(() => model.deleteRowAt(contextIndex ?? model.focus.row));
+    const span = model.getRowSpanForHeaderMenu(contextIndex);
+    if (span.count > 1) {
+      this.mutateGrid(() => model.deleteRowRange(span.rowMin, span.count));
       return;
     }
-    const bounds = model.getSelectionBounds();
-    const deleteCount = bounds.rowMax - bounds.rowMin + 1;
-    this.mutateGrid(() => model.deleteRowRange(bounds.rowMin, deleteCount));
+    this.mutateGrid(() => model.deleteRowAt(span.rowMin));
   }
 
   deleteColumns(contextIndex) {
     const { model } = this;
-    if (model.selectionKind !== 'column') {
-      this.mutateGrid(() => model.deleteColumnAt(contextIndex ?? model.focus.col));
+    const span = model.getColumnSpanForHeaderMenu(contextIndex);
+    if (span.count > 1) {
+      this.mutateGrid(() => model.deleteColumnRange(span.colMin, span.count));
       return;
     }
-    const bounds = model.getSelectionBounds();
-    const deleteCount = bounds.colMax - bounds.colMin + 1;
-    this.mutateGrid(() => model.deleteColumnRange(bounds.colMin, deleteCount));
+    this.mutateGrid(() => model.deleteColumnAt(span.colMin));
   }
 
   export() {
