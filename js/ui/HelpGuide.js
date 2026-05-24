@@ -1,45 +1,47 @@
 const GUIDE_ROWS = [
   {
+    feature: '시트 제목',
+    description:
+      '맨 위 제목을 클릭해 바꿀 수 있습니다. 비워 두면 「제목없음」으로 저장됩니다.',
+  },
+  {
     feature: '셀·범위 선택',
-    description: '셀 클릭·드래그로 범위 선택. Shift+클릭/방향키로 범위 확장',
+    description:
+      '셀을 클릭하거나 드래그하면 원하는 칸·범위를 고를 수 있어요. Shift를 누른 채 클릭하거나 방향키를 쓰면 선택을 더 넓힐 수 있습니다.',
   },
   {
     feature: '행·열 선택',
-    description: '행 번호·열 헤더 클릭·드래그로 여러 행/열 선택',
-  },
-  {
-    feature: '전체 시트',
-    description: '좌상단 모서리 칸 클릭',
-  },
-  {
-    feature: '편집',
     description:
-      'Enter / 같은 셀 다시 클릭 / 선택 후 입력. 편집 중 Enter → 아래 셀, Cmd·Ctrl+Enter → 줄바꿈',
+      '왼쪽 행 번호나 위쪽 열 이름(A, B…)을 클릭·드래그하면 그 행·열 전체를 한꺼번에 선택할 수 있어요.',
+  },
+  {
+    feature: '전체 시트 선택',
+    description: '표 왼쪽 위 모서리 칸을 누르면 시트 전체가 선택됩니다.',
   },
   {
     feature: '실행 취소·다시 실행',
-    description: '셀 수정·삭제, 행/열 추가·삭제, 붙여넣기 등 최대 100단계 되돌리기',
+    description:
+      '셀을 고치거나 지우고, 행·열을 추가·삭제한 뒤에도 실행 취소로 되돌릴 수 있어요. 붙여넣기도 포함되며, 최대 100단계까지 가능합니다.',
   },
   {
     feature: '행·열 추가·삭제',
     description:
-      '행 번호·열 헤더 오른쪽 클릭 메뉴. 여러 행/열 선택 시 선택 개수만큼 일괄 추가·삭제',
+      '행 번호나 열 헤더에서 오른쪽 클릭하면 추가·삭제 메뉴가 나옵니다. 여러 행·열을 먼저 골라 두면, 선택한 개수만큼 한 번에 넣거나 지울 수 있어요.',
   },
   {
     feature: '복사·붙여넣기',
-    description: 'Excel·표·TSV 등 표 데이터 붙여넣기 가능. 범위가 크면 행·열 자동 확장',
+    description:
+      'Excel이나 다른 표에서 복사한 내용을 그대로 붙여 넣을 수 있습니다. 붙여 넣을 자리가 부족하면 행·열이 알아서 늘어납니다.',
   },
   {
     feature: 'Excel Export',
-    description: 'Export Excel → .xlsx 다운로드 (파일명·시트 탭에 시트 제목 반영)',
+    description:
+      'Export Excel 버튼을 누르면 .xlsx 파일로 저장됩니다. 파일 이름과 시트 탭에는 맨 위에 적은 시트 제목이 들어갑니다.',
   },
   {
     feature: '자동 저장',
-    description: '입력·구조 변경 내용 브라우저에 자동 저장 (새로고침 후 유지)',
-  },
-  {
-    feature: '시트 제목',
-    description: '툴바 제목 클릭 후 편집 (비우면 「제목없음」)',
+    description:
+      '입력한 내용은 브라우저에 자동으로 저장되니, 새로고침해도 그대로 남아 있어요.',
   },
 ];
 
@@ -66,7 +68,7 @@ export class HelpGuide {
         const item = document.createElement('li');
         item.className = 'help-guide-item';
 
-        const feature = document.createElement('span');
+        const feature = document.createElement('div');
         feature.className = 'help-guide-feature';
         feature.textContent = row.feature;
 
