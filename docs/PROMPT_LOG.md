@@ -339,3 +339,13 @@ export 할 때 시트 데이터에 제목이 들어갈 필요는 없어.
 > 의도/반영: `toolbar-row-title` / `toolbar-row-meta` 2단 구조. 행×열은 Export 버튼과 같은 우측 끝에 정렬.
 
 ---
+
+- 프롬프트:
+
+```
+.xlsx 도 가능하게 그냥 바꿀까?
+```
+
+> 의도/반영: SheetJS CDN 추가, `XLSX.writeFile`로 `{제목}.xlsx` 저장. 시트 본문은 그리드 데이터만, 탭명·파일명에 제목 사용.
+
+---

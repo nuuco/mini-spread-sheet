@@ -1224,15 +1224,6 @@ function collectSpreadsheetData() {
   return spreadsheet.data.map((row) => [...row]);
 }
 
-function escapeXml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
 function sanitizeExportFileName(title) {
   const cleaned = String(title ?? '')
     .replace(/[\\/:*?"<>|]/g, '')
@@ -1251,48 +1242,22 @@ function sanitizeWorksheetName(title) {
   return cleaned || 'Sheet1';
 }
 
-function buildExcelRowXml(row) {
-  const cells = row
-    .map((cell) => `<Cell><Data ss:Type="String">${escapeXml(cell)}</Data></Cell>`)
-    .join('');
-
-  return `<Row>${cells}</Row>`;
-}
-
-function buildExcelXmlContent(data, title) {
-  const sheetName = sanitizeWorksheetName(String(title ?? '').trim());
-  const rows = data.map((row) => buildExcelRowXml(row)).join('');
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:o="urn:schemas-microsoft-com:office:office"
- xmlns:x="urn:schemas-microsoft-com:office:excel"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
- <Worksheet ss:Name="${escapeXml(sheetName)}">
-  <Table>${rows}</Table>
- </Worksheet>
-</Workbook>`;
-}
-
-function downloadFile(filename, content, mimeType) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 function exportSpreadsheet() {
+  if (typeof XLSX === 'undefined') {
+    window.alert('Excel보내기 라이브러리를 불러오지 못했습니다. 네트워크 연결을 확인해 주세요.');
+    return;
+  }
+
   finishSheetTitleEdit();
   const title = spreadsheet.title.trim();
   const data = collectSpreadsheetData();
-  const excelContent = buildExcelXmlContent(data, title);
-  const filename = `${sanitizeExportFileName(title)}.xls`;
+  const sheetName = sanitizeWorksheetName(title);
+  const filename = `${sanitizeExportFileName(title)}.xlsx`;
+  const worksheet = XLSX.utils.aoa_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
 
-  downloadFile(filename, excelContent, 'application/vnd.ms-excel;charset=utf-8');
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  XLSX.writeFile(workbook, filename);
 }
 
 function insertRowAt(index) {

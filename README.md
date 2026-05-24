@@ -1,6 +1,6 @@
 # Mini Spreadsheet
 
-JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 셀 입력, 포커스 좌표 표시, 행/열 헤더 하이라이트, 데이터 수집, CSV Export 기능을 제공합니다.
+JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 셀 입력, 포커스 좌표 표시, 행/열 헤더 하이라이트, 데이터 수집, Excel Export 기능을 제공합니다.
 
 ## 기능 목록
 
@@ -11,7 +11,7 @@ JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 
 3. **현재 포커스 좌표 표시** — 상단 `Cell: C1` 형식으로 표시
 4. **행/열 헤더 하이라이트** — 선택 셀의 열·행 헤더 동시 강조
 5. **데이터 구조화 수집** — 2차원 배열 `string[][]` 형태로 수집
-6. **Export 기능** — Excel 파일(`spreadsheet.xls`) 다운로드 (Excel에서 바로 열기 가능)
+6. **Export 기능** — Excel 파일(`spreadsheet.xlsx`) 다운로드 (SheetJS 사용)
 
 ### 선택 기능
 
@@ -42,7 +42,7 @@ const CONFIG = {
 ## Export 및 Google Sheets 검증
 
 1. 스프레드시트에 데이터 입력
-2. **Export Excel** 버튼 클릭 → `spreadsheet.xls` 다운로드
+2. **Export Excel** 버튼 클릭 → `spreadsheet.xlsx` 다운로드 (제목이 있으면 `{제목}.xlsx`)
 3. Excel에서 열거나, [Google Sheets](https://sheets.google.com) → **파일 → 가져오기 → 업로드** 로 업로드
 4. 데이터 위치가 그리드와 동일한지 확인
 
@@ -58,7 +58,7 @@ const CONFIG = {
 │   ├── PROMPT_LOG.md
 │   └── screenshots/ # (수동) 캡처 저장
 └── exports/
-    └── spreadsheet.xls # (수동) Export 샘플
+    └── spreadsheet.xlsx # (수동) Export 샘플
 ```
 
 ## app.js 주요 함수
@@ -69,7 +69,7 @@ const CONFIG = {
 | `renderGrid()` | 그리드 DOM 생성 |
 | `setFocus()` | 포커스 상태 및 UI 동기화 |
 | `collectSpreadsheetData()` | 2D 배열 데이터 반환 |
-| `exportSpreadsheet()` | Excel(.xls) 다운로드 |
+| `exportSpreadsheet()` | Excel(.xlsx) 다운로드 |
 | `saveToLocalStorage()` / `loadFromLocalStorage()` | 자동 저장/복원 |
 | `addRow()` / `removeRow()` / `addColumn()` / `removeColumn()` | 행·열 조작 |
 

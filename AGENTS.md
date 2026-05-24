@@ -10,7 +10,7 @@
 - 붙여넣기 개선: HTML 테이블·TSV·마크다운 표 파싱, 구분선 행 스킵
 - 실행 취소/다시 실행: undo/redo 스택, Cmd/Ctrl+Z·Shift+Z·Ctrl+Y 단축키
 - 컨텍스트 메뉴 위치: 마지막 행·열 오른클릭 시 위·왼쪽으로 표시
-- Export Excel: CSV 대신 SpreadsheetML(.xls)로 Excel에서 바로 열리게 변경
+- Export Excel: SheetJS로 .xlsx 다운로드 (파일명·시트탭에 제목 반영)
 - 시트 제목 입력: 툴바 제목 필드, localStorage 저장, Export 시 1행·시트명·파일명 반영
 - 시트 제목 UI: 클릭 편집, 기본 표시 「제목없음」, 라벨 제거
 - 툴바 레이아웃: 1행 제목+Export, 2행 셀정보+행×열(우측 정렬)
