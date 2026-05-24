@@ -548,3 +548,13 @@ GridRenderer model.cols undefined 오류 / 파비콘·모서리칸 README·AGENT
 > 의도/반영: `toolbar-history`에 undo/redo 아이콘 버튼 추가·`UndoStack`과 disabled 연동. OS별 `(⌘Z)`/`(Ctrl+Z)`·호버 `title`. 곡선 화살 SVG, 실행 취소는 다시 실행 아이콘 좌우 반전. 아이콘 크기·진한 회색 톤, 단축키는 연한색(모바일은 아이콘만). AGENTS.md 반영.
 
 ---
+
+- 프롬프트:
+
+```
+셀에 한글 쓰고 Enter 치면 다음 셀까지 입력돼 (예: A1 "아이디어" → A2에 "어"). 한글 조합도 안 돼 ("임자"가 ㅇㅣㅁ자처럼). 원인 파악해서 수정해
+```
+
+> 의도/반영: Enter·IME — 조합 중 Enter 무시·셀 `stopPropagation`·document가 `.cell-input` Enter 재처리하지 않음. 조합 깨짐 — `input`마다 `layoutEditingInput`이 fixed·크기 변경해 IME 끊김 → `compositionstart`~`end` 동안 레이아웃·`handleCellInput` 스킵, 조합 종료 후 `syncEditingInput`. AGENTS.md 반영.
+
+---

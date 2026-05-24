@@ -38,6 +38,10 @@ export class GridRenderer {
     input.setSelectionRange(end, end);
   }
 
+  static isInputComposing(input, event) {
+    return event?.isComposing === true || input.dataset.imeComposing === 'true';
+  }
+
   static measureTextWidth(input, text) {
     const style = window.getComputedStyle(input);
     const canvas = document.createElement('canvas');
@@ -144,24 +148,35 @@ export class GridRenderer {
   bindCellEvents(input, cell, row, col) {
     const { app } = this;
 
-    input.addEventListener('input', (event) => {
-      GridRenderer.updateCellInputLayout(event.target);
-      app.handleCellInput(row, col, event.target.value);
-      if (cell.classList.contains('editing')) {
-        GridRenderer.layoutEditingInput(event.target, cell);
+    const syncEditingInput = (target, event) => {
+      if (GridRenderer.isInputComposing(target, event)) {
+        return;
       }
+      GridRenderer.updateCellInputLayout(target);
+      app.handleCellInput(row, col, target.value);
+      if (cell.classList.contains('editing')) {
+        GridRenderer.layoutEditingInput(target, cell);
+      }
+    };
+
+    input.addEventListener('compositionstart', () => {
+      input.dataset.imeComposing = 'true';
+    });
+
+    input.addEventListener('compositionend', (event) => {
+      delete input.dataset.imeComposing;
+      syncEditingInput(event.target, event);
+    });
+
+    input.addEventListener('input', (event) => {
+      syncEditingInput(event.target, event);
     });
 
     input.addEventListener('paste', (event) => {
       event.preventDefault();
       const pastedText = event.clipboardData.getData('text/plain').replace(/\r?\n/g, ' ');
       GridRenderer.insertTextAtCursor(event.target, pastedText);
-      GridRenderer.updateCellInputLayout(event.target);
-      app.handleCellInput(row, col, event.target.value);
-    });
-
-    input.addEventListener('compositionend', (event) => {
-      app.handleCellInput(row, col, event.target.value);
+      syncEditingInput(event.target);
     });
 
     input.addEventListener('keydown', (event) => {
@@ -175,7 +190,7 @@ export class GridRenderer {
         event.preventDefault();
         event.stopPropagation();
         GridRenderer.insertNewlineAtCursor(event.target);
-        app.handleCellInput(row, col, event.target.value);
+        syncEditingInput(event.target);
         return;
       }
       event.preventDefault();
