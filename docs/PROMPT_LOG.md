@@ -187,3 +187,23 @@
 > 의도/반영: `getColContextMenuItems()`에서 `왼쪽에 열 추가`를 `오른쪽에 열 추가`보다 위에 배치.
 
 ---
+
+- 프롬프트:
+
+```
+가장 첫번째 셀(좌상단 코너)을 선택하면 시트 전체가 선택되게 해줘.
+```
+
+> 의도/반영: `selectionKind: 'sheet'`·`selectEntireSheet()` 추가. `.corner-header` 클릭 시 전체 셀·행·열 헤더 하이라이트, 좌표는 `Selection: A1:…` 형식.
+
+---
+
+- 프롬프트:
+
+```
+셀 input 좌우 여백을 줄여서 양옆 2px 정도만 남게 해줘.
+```
+
+> 의도/반영: `.cell-input` padding을 `0 10px` → `0 2px`로 변경.
+
+---

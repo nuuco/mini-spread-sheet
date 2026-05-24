@@ -82,6 +82,15 @@ function getSelectionBounds() {
     };
   }
 
+  if (selectionKind === 'sheet') {
+    return {
+      rowMin: 0,
+      rowMax: spreadsheet.rows - 1,
+      colMin: 0,
+      colMax: spreadsheet.cols - 1,
+    };
+  }
+
   return {
     rowMin: Math.min(anchor.row, focus.row),
     rowMax: Math.max(anchor.row, focus.row),
@@ -107,6 +116,10 @@ function isSingleCellSelection() {
 
 function getActiveCell() {
   const bounds = getSelectionBounds();
+
+  if (spreadsheet.selectionKind === 'sheet') {
+    return { row: 0, col: 0 };
+  }
 
   if (spreadsheet.selectionKind === 'row') {
     return { row: bounds.rowMin, col: 0 };
@@ -155,6 +168,29 @@ function syncInputEditState() {
     if (input) {
       input.readOnly = !editing;
     }
+  });
+}
+
+function selectEntireSheet() {
+  spreadsheet.mode = 'select';
+  spreadsheet.selectionKind = 'sheet';
+  spreadsheet.anchor = { row: 0, col: 0 };
+  spreadsheet.focus = {
+    row: spreadsheet.rows - 1,
+    col: spreadsheet.cols - 1,
+  };
+  blurActiveCellInput();
+  updateSelectionUI();
+}
+
+function bindCornerHeaderEvents(cornerHeader) {
+  cornerHeader.addEventListener('mousedown', (event) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    selectEntireSheet();
   });
 }
 
@@ -422,6 +458,8 @@ function updateHeaderHighlights() {
 
     if (selectionKind === 'column') {
       active = col >= bounds.colMin && col <= bounds.colMax;
+    } else if (selectionKind === 'sheet') {
+      active = true;
     } else if (selectionKind !== 'row' && singleCell) {
       active = col === activeCell.col;
     } else if (selectionKind === 'range' && !singleCell) {
@@ -437,6 +475,8 @@ function updateHeaderHighlights() {
 
     if (selectionKind === 'row') {
       active = row >= bounds.rowMin && row <= bounds.rowMax;
+    } else if (selectionKind === 'sheet') {
+      active = true;
     } else if (selectionKind !== 'column' && singleCell) {
       active = row === activeCell.row;
     } else if (selectionKind === 'range' && !singleCell) {
@@ -587,6 +627,7 @@ function renderGrid() {
   const headerRow = document.createElement('tr');
   const cornerCell = document.createElement('th');
   cornerCell.className = 'corner-header';
+  bindCornerHeaderEvents(cornerCell);
   headerRow.appendChild(cornerCell);
 
   for (let col = 0; col < spreadsheet.cols; col += 1) {
