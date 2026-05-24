@@ -344,6 +344,42 @@ function isGridKeyboardTarget(event) {
   return !event.target.closest('.controls') && !event.target.closest('.toolbar');
 }
 
+function getArrowDelta(key) {
+  if (key === 'ArrowUp') {
+    return { row: -1, col: 0 };
+  }
+  if (key === 'ArrowDown') {
+    return { row: 1, col: 0 };
+  }
+  if (key === 'ArrowLeft') {
+    return { row: 0, col: -1 };
+  }
+  if (key === 'ArrowRight') {
+    return { row: 0, col: 1 };
+  }
+  return null;
+}
+
+function moveActiveCellBy(deltaRow, deltaCol, extend = false) {
+  const activeCell = getActiveCell();
+  const nextRow = Math.max(0, Math.min(activeCell.row + deltaRow, spreadsheet.rows - 1));
+  const nextCol = Math.max(0, Math.min(activeCell.col + deltaCol, spreadsheet.cols - 1));
+
+  spreadsheet.mode = 'select';
+  blurActiveCellInput();
+
+  if (extend) {
+    spreadsheet.focus = { row: nextRow, col: nextCol };
+    spreadsheet.selectionKind = 'range';
+  } else {
+    spreadsheet.anchor = { row: nextRow, col: nextCol };
+    spreadsheet.focus = { row: nextRow, col: nextCol };
+    spreadsheet.selectionKind = 'range';
+  }
+
+  updateSelectionUI();
+}
+
 function clearSelectedCellContent() {
   const bounds = getSelectionBounds();
 
@@ -870,6 +906,13 @@ function bindKeyboardEvents() {
     }
 
     if (spreadsheet.mode === 'edit') {
+      return;
+    }
+
+    const arrowDelta = getArrowDelta(event.key);
+    if (arrowDelta) {
+      event.preventDefault();
+      moveActiveCellBy(arrowDelta.row, arrowDelta.col, event.shiftKey);
       return;
     }
 

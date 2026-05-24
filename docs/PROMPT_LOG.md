@@ -157,3 +157,13 @@
 > 의도/반영: 선택된 행/열 범위 내 헤더 오른클릭 시 선택 유지. `deleteSelectedRows`/`deleteSelectedColumns`로 범위 일괄 삭제, 다중 선택 시 메뉴 `행 삭제 (N개)` 표시. 최소 1행·1열은 남김.
 
 ---
+
+- 프롬프트:
+
+```
+포커즈 셀을 키보드 방향키로 움직일 수 있게 해줘.
+```
+
+> 의도/반영: `getArrowDelta`/`moveActiveCellBy` 추가. 선택 모드에서 `ArrowUp/Down/Left/Right` 입력 시 활성 셀이 이동하고, `Shift + 방향키`는 선택 범위를 확장.
+
+---
