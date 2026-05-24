@@ -44,3 +44,5 @@
 - 행×열 표시: 툴바 → 시트 패널 하단 우측 오버레이(`sheet-panel`)
 - 한글 IME: 조합 중 Enter·layout 스킵, 활성 셀 readOnly 해제, `prepareCellEditFromInput`(beforeinput·clear·첫 자모 조합)
 - 한글 IME 트러블슈팅 문서: `docs/TROUBLESHOOTING_KOREAN_IME.md`·README 링크
+- 셀 반복 클릭 높이 증가 수정: `resetEditingInputLayout`에 `height` 초기화·짧은 글은 fixed 오버레이 생략
+- 편집 모드 하단 이중선: `.cell.editing .cell-input` inset 0·line-height `calc(row - 4px)`로 셀과 높이 일치

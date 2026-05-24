@@ -658,7 +658,11 @@ export class SpreadsheetApp {
     }
     if (input && cell && selectAll) {
       requestAnimationFrame(() => {
-        if (!GridRenderer.isInputComposing(input)) {
+        if (GridRenderer.isInputComposing(input)) {
+          return;
+        }
+        GridRenderer.resetEditingInputLayout(input);
+        if (GridRenderer.needsEditingOverlay(input, cell)) {
           GridRenderer.layoutEditingInput(input, cell);
         }
       });
@@ -723,7 +727,10 @@ export class SpreadsheetApp {
     if (input) {
       const cell = input.closest('.cell');
       if (cell && !GridRenderer.isInputComposing(input)) {
-        GridRenderer.layoutEditingInput(input, cell);
+        GridRenderer.resetEditingInputLayout(input);
+        if (GridRenderer.needsEditingOverlay(input, cell)) {
+          GridRenderer.layoutEditingInput(input, cell);
+        }
       }
     }
     this.scheduleSave();

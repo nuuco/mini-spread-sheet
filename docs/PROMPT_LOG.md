@@ -558,3 +558,13 @@ GridRenderer model.cols undefined 오류 / 파비콘·모서리칸 README·AGENT
 > 의도/반영: **Enter** — 조합 중(`isComposing`·229) Enter 무시·셀에서 `stopPropagation`·편집 중 document 단축키와 분리(`isEditingCellInputEvent`는 `.cell.editing`만). **조합 중단** — `layoutEditingInput`·모델 동기화를 `compositionstart`~`end`·`imeComposing` 동안 스킵, `syncInputEditState`에서 편집 중 fixed 레이아웃 호출 제거. **선택→입력** — 활성 셀만 `readOnly` 해제·포커스 유지; `beforeinput`·IME `keydown`에서 `prepareCellEditFromInput`(기존 값 clear·`select()` 없음·조합 예상 시에만 `imeComposing`)으로 덮어쓰기·첫 자모 조합 보장. 상세는 `docs/TROUBLESHOOTING_KOREAN_IME.md`·README 링크.
 
 ---
+
+- 프롬프트:
+
+```
+셀을 여러 번 클릭하면 높이가 계속 커지는 버그 원인 파악해줘. 수정해. 편집 모드일 때 밑에 선이 두 줄처럼 보이는데 인풋 높이가 셀보다 작은 거 아니야?
+```
+
+> 의도/반영: **높이 증가** — `layoutEditingInput`이 남긴 인라인 `height`가 `resetEditingInputLayout`에서 안 지워져 행이 커진 뒤 재클릭마다 `cellRect`가 커짐 → `height`/`visibility` 초기화·`layoutEditingInput` 전 reset·`needsEditingOverlay`(줄바꿈·긴 글만 fixed 오버레이). **하단 이중선** — 셀 36px에 편집 border 2px·`line-height` 34px 불일치로 input이 셀을 못 채움 → `--grid-row-height`·`.cell.editing .cell-input` `inset:0`·`line-height: calc(row - 4px)`. AGENTS.md 반영.
+
+---

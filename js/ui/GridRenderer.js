@@ -32,10 +32,23 @@ export class GridRenderer {
     input.style.left = '';
     input.style.top = '';
     input.style.width = '';
+    input.style.height = '';
     input.style.minWidth = '';
     input.style.minHeight = '';
     input.style.maxHeight = '';
+    input.style.visibility = '';
     input.style.zIndex = '';
+  }
+
+  /** 긴 텍스트·줄바꿈일 때만 fixed 편집 오버레이 필요 */
+  static needsEditingOverlay(input, cell) {
+    const value = input.value ?? '';
+    if (value.includes('\n')) {
+      return true;
+    }
+    const cellRect = cell.getBoundingClientRect();
+    const contentWidth = GridRenderer.longestLineWidth(input, value);
+    return contentWidth + EDITING_INPUT_EXPAND_PADDING > cellRect.width;
   }
 
   static collapseInputSelection(input) {
@@ -103,6 +116,8 @@ export class GridRenderer {
     if (GridRenderer.isInputComposing(input)) {
       return;
     }
+
+    GridRenderer.resetEditingInputLayout(input);
 
     const cellRect = cell.getBoundingClientRect();
     const spaceToRight = window.innerWidth - cellRect.left - 24;
@@ -190,8 +205,13 @@ export class GridRenderer {
       }
       GridRenderer.updateCellInputLayout(target);
       app.handleCellInput(row, col, target.value);
-      if (cell.classList.contains('editing')) {
+      if (
+        cell.classList.contains('editing') &&
+        GridRenderer.needsEditingOverlay(target, cell)
+      ) {
         GridRenderer.layoutEditingInput(target, cell);
+      } else if (cell.classList.contains('editing')) {
+        GridRenderer.resetEditingInputLayout(target);
       }
     };
 

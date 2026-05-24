@@ -37,6 +37,8 @@
   --shadow-surface: 0 1px 2px rgba(37, 99, 235, 0.06), 0 8px 24px rgba(37, 99, 235, 0.1);
   --shadow-edit: 0 4px 20px rgba(37, 99, 235, 0.22);
   --shadow-menu: 0 8px 28px rgba(15, 23, 42, 0.12);
+
+  --grid-row-height: 36px;
 }
 
 *,
@@ -365,7 +367,7 @@ body {
   color: var(--color-text-secondary);
   font-weight: 600;
   font-size: 0.8125rem;
-  height: 36px;
+  height: var(--grid-row-height);
   user-select: none;
   cursor: pointer;
   transition:
@@ -385,7 +387,7 @@ body {
 }
 
 .cell {
-  height: 36px;
+  height: var(--grid-row-height);
   background: var(--color-bg-surface);
   transition: background 0.1s ease;
 }
@@ -422,7 +424,7 @@ body {
 
 .cell-input {
   width: 100%;
-  height: 36px;
+  height: var(--grid-row-height);
   border: none;
   padding: 0 2px;
   font: inherit;
@@ -433,7 +435,7 @@ body {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  line-height: 36px;
+  line-height: var(--grid-row-height);
 }
 
 .cell-input.multiline {
@@ -457,7 +459,14 @@ body {
   z-index: 20;
 }
 
+/* 편집 시 border 2px 포함해 셀 전체를 채움 (height 36px + border 겹침 → 하단 이중선 방지) */
 .cell.editing .cell-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  box-sizing: border-box;
   cursor: text;
   background: var(--color-bg-surface);
   border: 2px solid var(--color-accent-strong);
@@ -468,7 +477,7 @@ body {
 
 .cell.editing .cell-input:not(.multiline) {
   overflow-x: auto;
-  line-height: 34px;
+  line-height: calc(var(--grid-row-height) - 4px);
 }
 
 .cell.editing .cell-input.multiline {
@@ -799,18 +808,12 @@ body.help-guide-open {
     justify-content: center;
   }
 
-  .cell,
+  :root {
+    --grid-row-height: 40px;
+  }
+
   .col-header,
   .row-header {
-    height: 40px;
-  }
-
-  .cell-input {
-    height: 40px;
-    line-height: 40px;
-  }
-
-  .cell.editing .cell-input:not(.multiline) {
-    line-height: 38px;
+    height: var(--grid-row-height);
   }
 }
