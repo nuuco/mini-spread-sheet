@@ -97,3 +97,13 @@
 > 의도/반영: 선택 모드에서 printable 키 입력 시 `startTypingInActiveCell()`로 포커스 셀 내용을 해당 문자로 교체 후 편집 모드 진입. Backspace는 선택 영역 일괄 삭제 유지. 더블클릭 편집은 기존 텍스트 전체 선택 후 수정.
 
 ---
+
+- 프롬프트:
+
+```
+셀 하나 선택 시 행·열 하늘색 배경이 사라졌어. 행만 선택할 때는 열 헤더 강조 없이, 열만 선택할 때는 행 헤더 강조 없이.
+```
+
+> 의도/반영: 단일 셀 선택 시 `highlight-row`·`highlight-col`로 해당 행·열 전체에 `#e8f4fc` 배경 복원. `updateHeaderHighlights()`에서 `selectionKind === 'row'`면 행 헤더만, `'column'`이면 열 헤더만 진하게 표시.
+
+---

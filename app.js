@@ -248,20 +248,44 @@ function updateCoordinateDisplay() {
 
 function updateHeaderHighlights() {
   const bounds = getSelectionBounds();
+  const { selectionKind, focus } = spreadsheet;
+  const singleCell = isSingleCellSelection();
 
   document.querySelectorAll('.col-header').forEach((header) => {
     const col = Number(header.dataset.col);
-    header.classList.toggle('active', col >= bounds.colMin && col <= bounds.colMax);
+    let active = false;
+
+    if (selectionKind === 'column') {
+      active = col >= bounds.colMin && col <= bounds.colMax;
+    } else if (selectionKind !== 'row' && singleCell) {
+      active = col === focus.col;
+    } else if (selectionKind === 'range' && !singleCell) {
+      active = col >= bounds.colMin && col <= bounds.colMax;
+    }
+
+    header.classList.toggle('active', active);
   });
 
   document.querySelectorAll('.row-header').forEach((header) => {
     const row = Number(header.dataset.row);
-    header.classList.toggle('active', row >= bounds.rowMin && row <= bounds.rowMax);
+    let active = false;
+
+    if (selectionKind === 'row') {
+      active = row >= bounds.rowMin && row <= bounds.rowMax;
+    } else if (selectionKind !== 'column' && singleCell) {
+      active = row === focus.row;
+    } else if (selectionKind === 'range' && !singleCell) {
+      active = row >= bounds.rowMin && row <= bounds.rowMax;
+    }
+
+    header.classList.toggle('active', active);
   });
 }
 
 function updateCellSelection() {
   const { row: focusRow, col: focusCol } = spreadsheet.focus;
+  const showRowColGuide =
+    isSingleCellSelection() && spreadsheet.selectionKind === 'range';
 
   document.querySelectorAll('.cell').forEach((cell) => {
     const cellRow = Number(cell.dataset.row);
@@ -271,6 +295,8 @@ function updateCellSelection() {
 
     cell.classList.toggle('in-selection', inSelection);
     cell.classList.toggle('active-cell', isActive);
+    cell.classList.toggle('highlight-row', showRowColGuide && cellRow === focusRow);
+    cell.classList.toggle('highlight-col', showRowColGuide && cellCol === focusCol);
   });
 }
 
