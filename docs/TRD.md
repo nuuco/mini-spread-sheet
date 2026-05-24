@@ -32,13 +32,13 @@ flowchart LR
         CSS[style.css]
     end
 
-    subgraph logic [app.js]
-        State[spreadsheet state]
-        Render[renderGrid]
-        Events[selection / edit / keyboard]
-        History[undo redo]
-        Clipboard[copy paste]
-        Persist[localStorage]
+    subgraph logic [js/ ES modules]
+        State[SpreadsheetModel]
+        Render[GridRenderer]
+        Events[SpreadsheetApp]
+        History[UndoStack]
+        Clipboard[clipboard service]
+        Persist[StorageService]
     end
 
     subgraph external [External]
@@ -59,7 +59,7 @@ flowchart LR
 
 | 파일 | 책임 |
 |------|------|
-| `index.html` | 툴바, 그리드 마운트, 컨텍스트 메뉴, SheetJS·`app.js` 로드 |
+| `index.html` | 툴바, 그리드 마운트, 가이드 모달, 컨텍스트 메뉴, SheetJS·`js/main.js` 로드 |
 | `style.css` | 그리드·선택·헤더·툴바·메뉴 스타일 |
 | `js/*` | ES modules — `SpreadsheetApp` 조율, `SpreadsheetModel` 상태, UI·services |
 
@@ -123,8 +123,9 @@ let spreadsheet = {
 
 | 영역 | 요소 | 비고 |
 |------|------|------|
-| 1행 툴바 | `#sheet-title-wrap`, `#export-btn` | 제목 + Export |
-| 2행 툴바 | `#cell-coordinate`, `#grid-size-label` | 좌표 + 크기 |
+| 1행 툴바 | `#sheet-title-wrap` | 시트 제목 |
+| 2행 툴바 | `#cell-coordinate`, undo/redo, `#help-guide-btn`, `#export-btn` | 좌표·실행취소·가이드·Export |
+| 시트 패널 | `#grid-size-label` | `N행 × M열` (우하단 오버레이) |
 | 본문 | `#spreadsheet` | `<table class="grid-table">` |
 | 플로팅 | `#context-menu` | 행·열 헤더용 |
 
@@ -241,7 +242,7 @@ function saveToLocalStorage() {
 | redo | undo 시 현재 상태를 redo 스택에 push |
 | 단축키 | `Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z`, `Ctrl+Y` |
 
-`bindKeyboardEvents`: 툴바 포커스 시 그리드 단축키 비활성 (`isGridKeyboardTarget`).
+`bindKeyboardEvents`: 툴바·사용 가이드 모달(`#help-guide-modal`, `body.help-guide-open`) 포커스 시 그리드 단축키 비활성 (`isGridKeyboardTarget`).
 
 ---
 

@@ -6,7 +6,16 @@ export function isTypingKey(event) {
 }
 
 export function isGridKeyboardTarget(event) {
-  return !event.target.closest('.controls') && !event.target.closest('.toolbar');
+  if (event.target.closest('.controls') || event.target.closest('.toolbar')) {
+    return false;
+  }
+  if (event.target.closest('#help-guide-modal')) {
+    return false;
+  }
+  if (document.body.classList.contains('help-guide-open')) {
+    return false;
+  }
+  return true;
 }
 
 export function isCopyShortcut(event) {

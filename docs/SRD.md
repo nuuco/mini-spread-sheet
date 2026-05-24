@@ -14,13 +14,13 @@
 
 ## 1. 시스템 개요
 
-정적 SPA에 가까운 단일 페이지 앱이다. `app.js`가 상태·렌더·이벤트·Export·`localStorage`를 담당하고, Excel 생성만 **SheetJS**(CDN)에 위임한다.
+정적 SPA에 가까운 단일 페이지 앱이다. `js/` ES modules(`SpreadsheetApp`, `SpreadsheetModel` 등)가 상태·렌더·이벤트·Export·`localStorage`를 담당하고, Excel 생성만 **SheetJS**(CDN)에 위임한다.
 
 ```mermaid
 flowchart TB
     User[사용자]
     Browser[브라우저]
-    App[index.html + style.css + app.js]
+    App[index.html + style.css + js/]
     XLSX[SheetJS CDN]
     LS[(localStorage)]
     File["*.xlsx"]
@@ -46,7 +46,8 @@ flowchart TB
 | FR-004 | 다중 셀·범위 선택 시 `Selection: {시작}:{끝}`을 표시한다. | 필수 | 예: `Selection: A1:C3` |
 | FR-005 | 단일 셀·`range` 선택 시 해당 **열·행 헤더를 동시**에 강조한다. | 필수 | PRD F-04 |
 | FR-006 | 단일 셀 선택 시 해당 행·열 방향 셀 가이드(`highlight-row/col`)를 표시할 수 있다. | 필수 | 시각적 교차 강조 |
-| FR-007 | Enter(단독)는 편집 종료 후 **아래 셀**로 이동한다. | 필수 | `finishEditAndMoveDown` |
+| FR-007 | 선택 모드에서 Enter(단독)는 **편집 모드**로 진입한다. | 필수 | `enterEditMode` |
+| FR-007b | 편집 모드에서 Enter(단독)는 편집 종료 후 **아래 셀**로 이동한다. | 필수 | `finishEditAndMoveDown` |
 | FR-008 | Cmd/Ctrl+Enter는 셀 내 줄바꿈을 삽입한다. | 필수 | |
 | FR-009 | 편집 중 셀 단위 붙여넣기는 줄바꿈을 공백으로 평탄화한다. | 필수 | 단일 셀 paste 핸들러 |
 
@@ -71,7 +72,7 @@ flowchart TB
 | FR-019 | Export 워크시트 본문은 **그리드 데이터만** 포함한다. | 필수 | 제목 행 없음 |
 | FR-020 | 파일명·시트 탭명은 시트 제목을 정규화해 반영한다. | 필수 | 금지문자 제거, 공백→`_` |
 | FR-021 | SheetJS 로드 실패 시 사용자에게 알림한다. | 필수 | `alert` |
-| FR-022 | 제목이 비어 있으면 파일명 `spreadsheet`, 탭 `Sheet1`을 사용한다. | 필수 | |
+| FR-022 | 제목이 비어 있으면 파일명·탭 모두 `제목없음`을 사용한다. | 필수 | `resolveExportTitle` |
 
 ### 2.4 행·열 조작
 
@@ -110,6 +111,7 @@ flowchart TB
 |----|----------|----------|-----------|
 | FR-039 | 툴바에 `N행 × M열` 크기를 표시한다. | 선택 | `#grid-size-label` |
 | FR-040 | Export 버튼 라벨은 `Export Excel`이다. | 필수 | |
+| FR-041 | 사용 가이드 모달이 열려 있을 때 그리드 단축키(화살표·Enter 등)는 동작하지 않는다. | 선택 | `isGridKeyboardTarget` |
 
 ---
 
@@ -117,11 +119,11 @@ flowchart TB
 
 | ID | 분류 | 요구사항 | 수용 기준 |
 |----|------|----------|-----------|
-| NFR-001 | 구조 | HTML, CSS, JavaScript 파일 분리 | 3파일 + CDN 1 |
-| NFR-002 | 유지보수 | `app.js` 함수 단위 역할 분리 | 1함수 1역할 |
+| NFR-001 | 구조 | HTML, CSS, JavaScript 파일 분리 | `index.html` + `style.css` + `js/` + CDN 1 |
+| NFR-002 | 유지보수 | `js/` 모듈·클래스 단위 역할 분리 | SpreadsheetApp·Model·UI·services |
 | NFR-003 | 의존성 | 앱 로직은 Vanilla JS, Export만 SheetJS | CDN 0.20.3 |
 | NFR-004 | 배포 | `index.html`로 로컬 실행 가능 | Export 시 네트워크 필요 |
-| NFR-005 | UI | 데스크톱 기준 고정 레이아웃 | 반응형 필수 아님 |
+| NFR-005 | UI | 데스크톱 우선, 720px/480px 이하 기본 반응형 | 툴바 줄바꿈·짧은 라벨·그리드 스크롤 |
 | NFR-006 | 성능 | localStorage 저장 300ms debounce | |
 | NFR-007 | 접근성 | 셀·제목에 `aria-label` 제공 | |
 
@@ -157,7 +159,7 @@ flowchart TB
 
 | 요소 | ID | 요구사항 |
 |------|-----|----------|
-| 시트 제목 | `#sheet-title-display`, `#sheet-title` | 클릭 편집 |
+| 시트 제목 | `#sheet-title-field` | contenteditable 클릭 편집 |
 | 좌표 | `#cell-coordinate` | Cell / Selection |
 | 크기 | `#grid-size-label` | `N행 × M열` |
 | Export | `#export-btn` | Export Excel |
@@ -180,7 +182,7 @@ flowchart TB
 | # | 항목 | 연관 |
 |---|------|------|
 | 1 | 기본 그리드 렌더 | FR-001 |
-| 2 | 셀 입력·Enter·줄바꿈 | FR-002, FR-007~009 |
+| 2 | 셀 입력·Enter·줄바꿈 | FR-002, FR-007~009, FR-007b |
 | 3 | 좌표·헤더 동시 강조 | FR-003~006 |
 | 4 | `collectSpreadsheetData()` 일치 | FR-017 |
 | 5 | `.xlsx` Export·Sheets 연동 | FR-018~022 |
@@ -203,3 +205,4 @@ flowchart TB
 | F-11 | FR-010~016 |
 | F-12 | FR-033~034 |
 | F-13 | FR-035~038 |
+| F-14~15 | FR-041, NFR-005 |
