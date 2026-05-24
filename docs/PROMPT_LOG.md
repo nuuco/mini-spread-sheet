@@ -429,3 +429,33 @@ js 코드를 객체지향 방식으로 리팩토링해보자. 모듈화도 필�
 > 의도/반영: ES modules는 `file://`에서 CORS로 `import`가 막히는 경우가 많음. 실행은 `npx serve .` 등 로컬 서버 권장. `file://` 필수 시 단일 `app.js` 복구 또는 번들(Vite/Rollup) 필요 — README에 안내.
 
 ---
+
+- 프롬프트:
+
+```
+GET favicon.ico 404 — 파비콘 어울리는 걸로 하나 만들어줘.
+```
+
+> 의도/반영: 앱 색상(#1e4d8c) 그리드·선택 셀 느낌의 `favicon.svg`·`favicon.png`·`favicon.ico` 추가. `index.html`에 icon 링크(ico, svg, png, apple-touch-icon).
+
+---
+
+- 프롬프트:
+
+```
+제목 없이 다운로드하면 '제목없음'이 제목이 되게 / 셀에서 엔터치면 편집모드 / 셀 텍스트 길 때만 인풋 확장
+```
+
+> 의도/반영: Export 빈 제목 → `제목없음.xlsx`·시트탭 `제목없음`(`resolveExportTitle`). 선택 모드 Enter → 편집 진입. `layoutEditingInput` — 짧은 글은 셀 크기, 긴 글·줄바꿈만 가로·세로 확장.
+
+---
+
+- 프롬프트:
+
+```
+GridRenderer model.cols undefined 오류 / 파비콘·모서리칸 README·AGENTS·프롬프트 로그
+```
+
+> 의도/반영: `render()`에서 `const { model } = app` 수정. README 모서리 칸(헤더 교차 빈 칸) 전체 선택 문구 보강. AGENTS·PROMPT_LOG에 파비콘·후속 수정 기록.
+
+---
