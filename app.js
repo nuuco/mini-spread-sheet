@@ -669,11 +669,38 @@ function exportSpreadsheet() {
 }
 
 function insertRowAt(index) {
-  spreadsheet.data.splice(index, 0, Array(spreadsheet.cols).fill(''));
-  spreadsheet.rows += 1;
+  insertRowsAt(index, 1);
+}
+
+function insertRowsAt(index, count) {
+  const newRows = Array.from({ length: count }, () => Array(spreadsheet.cols).fill(''));
+  spreadsheet.data.splice(index, 0, ...newRows);
+  spreadsheet.rows += count;
   clampSelection();
   renderGrid();
   saveToLocalStorage();
+}
+
+function insertRowsAboveSelection() {
+  const bounds = getSelectionBounds();
+  const count =
+    spreadsheet.selectionKind === 'row' ? bounds.rowMax - bounds.rowMin + 1 : 1;
+  const index =
+    spreadsheet.selectionKind === 'row' ? bounds.rowMin : (contextMenuState.index ?? 0);
+
+  insertRowsAt(index, count);
+}
+
+function insertRowsBelowSelection() {
+  const bounds = getSelectionBounds();
+  const count =
+    spreadsheet.selectionKind === 'row' ? bounds.rowMax - bounds.rowMin + 1 : 1;
+  const index =
+    spreadsheet.selectionKind === 'row'
+      ? bounds.rowMax + 1
+      : (contextMenuState.index ?? 0) + 1;
+
+  insertRowsAt(index, count);
 }
 
 function deleteRowAt(index) {
@@ -714,11 +741,39 @@ function deleteSelectedRows() {
 }
 
 function insertColumnAt(index) {
-  spreadsheet.data.forEach((row) => row.splice(index, 0, ''));
-  spreadsheet.cols += 1;
+  insertColumnsAt(index, 1);
+}
+
+function insertColumnsAt(index, count) {
+  spreadsheet.data.forEach((row) => {
+    row.splice(index, 0, ...Array(count).fill(''));
+  });
+  spreadsheet.cols += count;
   clampSelection();
   renderGrid();
   saveToLocalStorage();
+}
+
+function insertColumnsLeftSelection() {
+  const bounds = getSelectionBounds();
+  const count =
+    spreadsheet.selectionKind === 'column' ? bounds.colMax - bounds.colMin + 1 : 1;
+  const index =
+    spreadsheet.selectionKind === 'column' ? bounds.colMin : (contextMenuState.index ?? 0);
+
+  insertColumnsAt(index, count);
+}
+
+function insertColumnsRightSelection() {
+  const bounds = getSelectionBounds();
+  const count =
+    spreadsheet.selectionKind === 'column' ? bounds.colMax - bounds.colMin + 1 : 1;
+  const index =
+    spreadsheet.selectionKind === 'column'
+      ? bounds.colMax + 1
+      : (contextMenuState.index ?? 0) + 1;
+
+  insertColumnsAt(index, count);
 }
 
 function deleteColumnAt(index) {
@@ -763,16 +818,16 @@ function deleteSelectedColumns() {
 
 function getRowContextMenuItems() {
   const bounds = getSelectionBounds();
-  const isMultiRow =
-    spreadsheet.selectionKind === 'row' && bounds.rowMin !== bounds.rowMax;
-  const count = bounds.rowMax - bounds.rowMin + 1;
+  const count =
+    spreadsheet.selectionKind === 'row' ? bounds.rowMax - bounds.rowMin + 1 : 1;
+  const countLabel = count > 1 ? ` ${count}개` : '';
 
   return [
-    { action: 'row-below', label: '아래에 행 추가' },
-    { action: 'row-above', label: '위에 행 추가' },
+    { action: 'row-below', label: `아래에 행${countLabel} 추가` },
+    { action: 'row-above', label: `위에 행${countLabel} 추가` },
     {
       action: 'row-delete',
-      label: isMultiRow ? `행 삭제 (${count}개)` : '행 삭제',
+      label: count > 1 ? `행 삭제 (${count}개)` : '행 삭제',
       danger: true,
     },
   ];
@@ -780,16 +835,16 @@ function getRowContextMenuItems() {
 
 function getColContextMenuItems() {
   const bounds = getSelectionBounds();
-  const isMultiCol =
-    spreadsheet.selectionKind === 'column' && bounds.colMin !== bounds.colMax;
-  const count = bounds.colMax - bounds.colMin + 1;
+  const count =
+    spreadsheet.selectionKind === 'column' ? bounds.colMax - bounds.colMin + 1 : 1;
+  const countLabel = count > 1 ? ` ${count}개` : '';
 
   return [
-    { action: 'col-below', label: '아래에 열 추가' },
-    { action: 'col-above', label: '위에 열 추가' },
+    { action: 'col-right', label: `오른쪽에 열${countLabel} 추가` },
+    { action: 'col-left', label: `왼쪽에 열${countLabel} 추가` },
     {
       action: 'col-delete',
-      label: isMultiCol ? `열 삭제 (${count}개)` : '열 삭제',
+      label: count > 1 ? `열 삭제 (${count}개)` : '열 삭제',
       danger: true,
     },
   ];
@@ -846,14 +901,14 @@ function showContextMenu(type, index, x, y) {
 }
 
 function handleContextMenuAction(action) {
-  const { type, index } = contextMenuState;
+  const { type } = contextMenuState;
   hideContextMenu();
 
   if (type === 'row') {
     if (action === 'row-below') {
-      insertRowAt(index + 1);
+      insertRowsBelowSelection();
     } else if (action === 'row-above') {
-      insertRowAt(index);
+      insertRowsAboveSelection();
     } else if (action === 'row-delete') {
       deleteSelectedRows();
     }
@@ -861,10 +916,10 @@ function handleContextMenuAction(action) {
   }
 
   if (type === 'column') {
-    if (action === 'col-below') {
-      insertColumnAt(index + 1);
-    } else if (action === 'col-above') {
-      insertColumnAt(index);
+    if (action === 'col-right') {
+      insertColumnsRightSelection();
+    } else if (action === 'col-left') {
+      insertColumnsLeftSelection();
     } else if (action === 'col-delete') {
       deleteSelectedColumns();
     }
