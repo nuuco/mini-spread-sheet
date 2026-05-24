@@ -552,8 +552,47 @@ function loadFromLocalStorage() {
   }
 }
 
+function insertNewlineAtCursor(field) {
+  const start = field.selectionStart;
+  const end = field.selectionEnd;
+  field.value = `${field.value.slice(0, start)}\n${field.value.slice(end)}`;
+  field.selectionStart = start + 1;
+  field.selectionEnd = start + 1;
+}
+
+function finishEditAndMoveDown(row, col) {
+  const input = getCellInput(row, col);
+  if (input) {
+    onCellInput(row, col, input.value);
+  }
+
+  spreadsheet.mode = 'select';
+  blurActiveCellInput();
+
+  const nextRow = Math.min(row + 1, spreadsheet.rows - 1);
+  spreadsheet.anchor = { row: nextRow, col };
+  spreadsheet.focus = { row: nextRow, col };
+  spreadsheet.selectionKind = 'range';
+  updateSelectionUI();
+}
+
 function bindCellEvents(input, cell, row, col) {
   input.addEventListener('input', (event) => onCellInput(row, col, event.target.value));
+  input.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') {
+      return;
+    }
+
+    if (event.metaKey) {
+      event.preventDefault();
+      insertNewlineAtCursor(event.target);
+      onCellInput(row, col, event.target.value);
+      return;
+    }
+
+    event.preventDefault();
+    finishEditAndMoveDown(row, col);
+  });
   input.addEventListener('blur', () => {
     if (
       spreadsheet.mode === 'edit' &&
@@ -657,9 +696,9 @@ function renderGrid() {
       cell.dataset.row = String(row);
       cell.dataset.col = String(col);
 
-      const input = document.createElement('input');
-      input.type = 'text';
+      const input = document.createElement('textarea');
       input.className = 'cell-input';
+      input.rows = 1;
       input.value = spreadsheet.data[row][col] ?? '';
       input.setAttribute('aria-label', formatCellAddress(row, col));
 

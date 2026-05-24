@@ -207,3 +207,13 @@
 > 의도/반영: `.cell-input` padding을 `0 10px` → `0 2px`로 변경.
 
 ---
+
+- 프롬프트:
+
+```
+입력 중 Enter면 아래 셀로 이동, Cmd+Enter면 셀 안에서 개행.
+```
+
+> 의도/반영: 셀 입력을 `textarea`로 변경. `Enter` → `finishEditAndMoveDown()`으로 아래 셀 선택, `Cmd+Enter` → `insertNewlineAtCursor()`로 셀 내 줄바꿈.
+
+---
