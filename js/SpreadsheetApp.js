@@ -21,6 +21,7 @@ import { UndoStack } from './models/UndoStack.js';
 import { GridRenderer } from './ui/GridRenderer.js';
 import { SheetTitleEditor } from './ui/SheetTitleEditor.js';
 import { ContextMenu } from './ui/ContextMenu.js';
+import { HelpGuide } from './ui/HelpGuide.js';
 
 export class SpreadsheetApp {
   constructor() {
@@ -49,6 +50,8 @@ export class SpreadsheetApp {
       onChange: () => this.scheduleSave(),
       onCommit: () => this.persist(),
     });
+
+    this.helpGuide = new HelpGuide();
 
     this.refs = {
       coordinate: document.getElementById('cell-coordinate'),
@@ -84,7 +87,11 @@ export class SpreadsheetApp {
         if (this.titleEditor.isEditing() && !event.target.closest('#sheet-title-wrap')) {
           this.titleEditor.finishEdit(false);
         }
-        if (!event.target.closest('#spreadsheet')) {
+        if (
+          !event.target.closest('#spreadsheet') &&
+          !event.target.closest('#help-guide-modal') &&
+          !event.target.closest('#help-guide-btn')
+        ) {
           this.clearCellSelection();
         }
       },
