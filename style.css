@@ -104,7 +104,18 @@ body {
   background: #f5f9fc;
 }
 
+.cell.highlight-row,
+.cell.highlight-col {
+  background: #e8f4fc;
+}
+
+.cell.highlight-row:hover,
+.cell.highlight-col:hover {
+  background: #dceefa;
+}
+
 .cell.selected {
+  background: #cce8f9;
   outline: 2px solid #1e4d8c;
   outline-offset: -2px;
   z-index: 1;

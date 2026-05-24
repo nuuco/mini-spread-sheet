@@ -57,3 +57,13 @@
 > 의도/반영: `.app` padding을 `12px 16px` → `24px 32px`(상하 24px, 좌우 32px)로 늘림.
 
 ---
+
+- 프롬프트:
+
+```
+셀 선택했을 때 해당 행과 열에도 배경색이 살짝 들어가야 해. 하늘색 정도로 드러나면 될 것 같아.
+```
+
+> 의도/반영: `updateCellSelection()`에 `highlight-row`·`highlight-col` 클래스 토글 추가. `style.css`에서 해당 행·열 셀 `#e8f4fc`, 선택 셀 `#cce8f9` 하늘색 배경 적용.
+
+---

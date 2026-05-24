@@ -78,9 +78,13 @@ function updateCellSelection() {
   const { row, col } = spreadsheet.focus;
 
   document.querySelectorAll('.cell').forEach((cell) => {
-    const isSelected =
-      Number(cell.dataset.row) === row && Number(cell.dataset.col) === col;
+    const cellRow = Number(cell.dataset.row);
+    const cellCol = Number(cell.dataset.col);
+    const isSelected = cellRow === row && cellCol === col;
+
     cell.classList.toggle('selected', isSelected);
+    cell.classList.toggle('highlight-row', cellRow === row);
+    cell.classList.toggle('highlight-col', cellCol === col);
   });
 }
 
