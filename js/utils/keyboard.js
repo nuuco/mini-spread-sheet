@@ -73,6 +73,11 @@ export function shouldRouteToImeInput(event) {
   return /[\u1100-\u11FF\u3130-\u318F]/.test(event.key);
 }
 
+/** Enter 키(본문·숫자 패드) */
+export function isEnterKey(event) {
+  return event.key === 'Enter' || event.code === 'NumpadEnter';
+}
+
 /** 편집 중인 셀 textarea로 키가 들어온 경우 */
 export function isEditingCellInputEvent(event) {
   return Boolean(event.target.closest('.cell.editing .cell-input'));

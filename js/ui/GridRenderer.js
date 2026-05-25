@@ -2,6 +2,7 @@ import { columnIndexToLabel, formatCellAddress } from '../utils/cellAddress.js';
 import {
   isCellInsertBeforeInput,
   isComposingInput,
+  isEnterKey,
   isNewlineShortcut,
   shouldRouteToImeInput,
 } from '../utils/keyboard.js';
@@ -208,6 +209,15 @@ export class GridRenderer {
         if (app.model.mode !== 'select') {
           return;
         }
+        if (isEnterKey(event)) {
+          if (isComposingInput(event) || GridRenderer.isInputComposing(event.target, event)) {
+            return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          app.enterEditModeAtActiveCell();
+          return;
+        }
         if (shouldRouteToImeInput(event)) {
           const { row, col } = coords();
           app.prepareCellEditFromInput(row, col, { expectComposition: true });
@@ -263,7 +273,7 @@ export class GridRenderer {
     });
 
     input.addEventListener('keydown', (event) => {
-      if (event.key !== 'Enter') {
+      if (!isEnterKey(event)) {
         return;
       }
       if (isComposingInput(event) || GridRenderer.isInputComposing(event.target, event)) {
@@ -292,7 +302,9 @@ export class GridRenderer {
       }
       const { row, col } = coords();
       GridRenderer.collapseInputSelection(input);
-      app.exitEditMode(row, col);
+      if (app.isEditingActiveCell(row, col)) {
+        app.exitEditMode();
+      }
     });
   }
 

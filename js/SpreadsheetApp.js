@@ -6,6 +6,7 @@ import {
   getUndoShortcutLabel,
   isEditingCellInputEvent,
   isComposingInput,
+  isEnterKey,
   isCopyShortcut,
   isGridKeyboardTarget,
   isPasteShortcut,
@@ -152,7 +153,25 @@ export class SpreadsheetApp {
         if (!isGridKeyboardTarget(event)) {
           return;
         }
-        if (isEditingCellInputEvent(event)) {
+        if (isEditingCellInputEvent(event) && this.model.mode === 'edit') {
+          return;
+        }
+
+        if (isEnterKey(event)) {
+          if (isComposingInput(event)) {
+            return;
+          }
+          if (!this.model.hasSelection()) {
+            return;
+          }
+          if (this.model.mode === 'edit') {
+            return;
+          }
+          if (isSelectModeCellInputEvent(event)) {
+            return;
+          }
+          event.preventDefault();
+          this.enterEditModeAtActiveCell();
           return;
         }
 
@@ -202,18 +221,6 @@ export class SpreadsheetApp {
           }
           event.preventDefault();
           this.clearSelectedContent();
-          return;
-        }
-        if (event.key === 'Enter') {
-          if (!this.model.hasSelection()) {
-            return;
-          }
-          event.preventDefault();
-          const { row, col } = this.model.getActiveCell();
-          this.model.anchor = { row, col };
-          this.model.focus = { row, col };
-          this.model.selectionKind = 'range';
-          this.enterEditMode(row, col);
           return;
         }
         if (!this.model.hasSelection()) {
@@ -676,6 +683,22 @@ export class SpreadsheetApp {
       return null;
     }
     return { row: Number(match[1]), col: Number(match[2]) };
+  }
+
+  /** 선택 모드 Enter 등 — 활성 셀 기준으로 단일 범위로 맞춘 뒤 편집 진입 */
+  enterEditModeAtActiveCell() {
+    if (!this.model.hasSelection()) {
+      return false;
+    }
+    const { row, col } = this.model.getActiveCell();
+    if (!this.model.isCellInSelection(row, col)) {
+      return false;
+    }
+    this.model.anchor = { row, col };
+    this.model.focus = { row, col };
+    this.model.selectionKind = 'range';
+    this.enterEditMode(row, col);
+    return true;
   }
 
   enterEditMode(row, col, { selectAll = false } = {}) {
