@@ -2,6 +2,8 @@
 
 JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 셀 입력, 범위·행·열·전체 시트 선택, 포커스 좌표 표시, 행/열 헤더 하이라이트, 데이터 수집, Excel(.xlsx) Export, 실행 취소·다시 실행, 복사·붙여넣기, localStorage 자동 저장을 제공합니다.
 
+**배포:** [https://nuuco.github.io/mini-spread-sheet/](https://nuuco.github.io/mini-spread-sheet/)
+
 ![미니 스프레드시트 실행 화면](docs/screenshots/app-screenshot.png)
 
 요구사항 문서: [docs/PRD.md](docs/PRD.md) · [docs/SRD.md](docs/SRD.md) · [docs/TRD.md](docs/TRD.md)  
@@ -120,8 +122,10 @@ JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 
 
 ## 실행 방법
 
-1. 저장소 클론 또는 다운로드
-2. `index.html`을 브라우저에서 열거나 `npx serve .` 로 로컬 서버 실행
+- **온라인:** [GitHub Pages 배포](https://nuuco.github.io/mini-spread-sheet/)에서 바로 사용
+- **로컬:**
+  1. 저장소 클론 또는 다운로드
+  2. `index.html`을 브라우저에서 열거나 `npx serve .` 로 로컬 서버 실행
 
 > **Export:** SheetJS는 CDN에서 로드됩니다. Excel보내기 시 **네트워크**가 필요합니다.
 
