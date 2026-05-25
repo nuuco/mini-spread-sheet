@@ -355,13 +355,6 @@ body {
   outline-offset: 2px;
 }
 
-.export-btn:focus-visible {
-  outline-color: #ffffff;
-  box-shadow:
-    0 1px 2px rgba(20, 24, 31, 0.06),
-    0 0 0 3px var(--color-accent-ring);
-}
-
 .help-guide-btn-label--short {
   display: none;
 }
