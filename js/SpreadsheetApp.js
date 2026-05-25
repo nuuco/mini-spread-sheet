@@ -10,6 +10,7 @@ import {
   isGridKeyboardTarget,
   isPasteShortcut,
   isRedoShortcut,
+  isSelectModeCellInputEvent,
   isTypingKey,
   isUndoShortcut,
 } from './utils/keyboard.js';
@@ -145,76 +146,87 @@ export class SpreadsheetApp {
     document.addEventListener('mousemove', (event) => this.handleDocumentMouseMove(event));
     document.addEventListener('mouseup', () => this.endDragSelection());
 
-    document.addEventListener('keydown', (event) => {
-      if (!isGridKeyboardTarget(event)) {
-        return;
-      }
-      if (isEditingCellInputEvent(event)) {
-        return;
-      }
+    document.addEventListener(
+      'keydown',
+      (event) => {
+        if (!isGridKeyboardTarget(event)) {
+          return;
+        }
+        if (isEditingCellInputEvent(event)) {
+          return;
+        }
 
-      if (isUndoShortcut(event)) {
-        event.preventDefault();
-        this.undo();
-        return;
-      }
-      if (isRedoShortcut(event)) {
-        event.preventDefault();
-        this.redo();
-        return;
-      }
-      if (this.model.mode === 'edit') {
-        return;
-      }
-      if (isCopyShortcut(event)) {
-        if (!this.model.hasSelection()) {
+        const arrowDelta = getArrowDelta(event.key);
+        if (arrowDelta && isSelectModeCellInputEvent(event)) {
+          event.preventDefault();
+          event.stopPropagation();
+          this.moveActiveCellBy(arrowDelta.row, arrowDelta.col, event.shiftKey);
           return;
         }
-        event.preventDefault();
-        void this.copySelection();
-        return;
-      }
-      if (isPasteShortcut(event)) {
-        event.preventDefault();
-        void this.pasteSelection();
-        return;
-      }
 
-      const arrowDelta = getArrowDelta(event.key);
-      if (arrowDelta) {
-        event.preventDefault();
-        this.moveActiveCellBy(arrowDelta.row, arrowDelta.col, event.shiftKey);
-        return;
-      }
-      if (event.key === 'Backspace') {
+        if (isUndoShortcut(event)) {
+          event.preventDefault();
+          this.undo();
+          return;
+        }
+        if (isRedoShortcut(event)) {
+          event.preventDefault();
+          this.redo();
+          return;
+        }
+        if (this.model.mode === 'edit') {
+          return;
+        }
+        if (isCopyShortcut(event)) {
+          if (!this.model.hasSelection()) {
+            return;
+          }
+          event.preventDefault();
+          void this.copySelection();
+          return;
+        }
+        if (isPasteShortcut(event)) {
+          event.preventDefault();
+          void this.pasteSelection();
+          return;
+        }
+
+        if (arrowDelta) {
+          event.preventDefault();
+          this.moveActiveCellBy(arrowDelta.row, arrowDelta.col, event.shiftKey);
+          return;
+        }
+        if (event.key === 'Backspace') {
+          if (!this.model.hasSelection()) {
+            return;
+          }
+          event.preventDefault();
+          this.clearSelectedContent();
+          return;
+        }
+        if (event.key === 'Enter') {
+          if (!this.model.hasSelection()) {
+            return;
+          }
+          event.preventDefault();
+          const { row, col } = this.model.getActiveCell();
+          this.model.anchor = { row, col };
+          this.model.focus = { row, col };
+          this.model.selectionKind = 'range';
+          this.enterEditMode(row, col);
+          return;
+        }
         if (!this.model.hasSelection()) {
           return;
         }
-        event.preventDefault();
-        this.clearSelectedContent();
-        return;
-      }
-      if (event.key === 'Enter') {
-        if (!this.model.hasSelection()) {
+        if (!isTypingKey(event)) {
           return;
         }
         event.preventDefault();
-        const { row, col } = this.model.getActiveCell();
-        this.model.anchor = { row, col };
-        this.model.focus = { row, col };
-        this.model.selectionKind = 'range';
-        this.enterEditMode(row, col);
-        return;
-      }
-      if (!this.model.hasSelection()) {
-        return;
-      }
-      if (!isTypingKey(event)) {
-        return;
-      }
-      event.preventDefault();
-      this.startTypingInActiveCell(event.key);
-    });
+        this.startTypingInActiveCell(event.key);
+      },
+      true,
+    );
   }
 
   clearCellSelection() {
@@ -411,15 +423,7 @@ export class SpreadsheetApp {
 
   updateCellsUI() {
     const cells = document.querySelectorAll('.cell');
-    const bounds = this.model.getSelectionBounds();
-    const isInSelection = (row, col) =>
-      Boolean(
-        bounds &&
-          row >= bounds.rowMin &&
-          row <= bounds.rowMax &&
-          col >= bounds.colMin &&
-          col <= bounds.colMax,
-      );
+    const dragging = this.drag.active;
 
     if (!this.model.hasSelection()) {
       cells.forEach((cell) => {
@@ -451,13 +455,17 @@ export class SpreadsheetApp {
     cells.forEach((cell) => {
       const cellRow = Number(cell.dataset.row);
       const cellCol = Number(cell.dataset.col);
-      const inSelection = isInSelection(cellRow, cellCol);
+      const inSelection = this.model.isCellInSelection(cellRow, cellCol);
       const isActive = inSelection && cellRow === activeRow && cellCol === activeCol;
 
       cell.classList.toggle('in-selection', inSelection);
       cell.classList.toggle('active-cell', isActive);
       cell.classList.toggle('highlight-row', showRowColGuide && cellRow === activeRow);
       cell.classList.toggle('highlight-col', showRowColGuide && cellCol === activeCol);
+
+      if (dragging) {
+        return;
+      }
 
       const editing =
         isEditing && cellRow === activeRow && cellCol === activeCol && inSelection;
@@ -587,15 +595,23 @@ export class SpreadsheetApp {
       return;
     }
 
+    const wasDragging = this.drag.active;
     const { moved, kind, wasActiveBeforeDown, pointerDownOn } = this.drag;
-    if (!moved && kind === 'cell' && wasActiveBeforeDown) {
-      this.enterEditMode(pointerDownOn.row, pointerDownOn.col, { selectAll: true });
-    }
 
     this.drag.active = false;
     this.drag.moved = false;
     this.drag.kind = null;
     document.body.classList.remove('is-dragging');
+
+    if (!moved && kind === 'cell' && wasActiveBeforeDown) {
+      this.refreshSelectionUI();
+      this.enterEditMode(pointerDownOn.row, pointerDownOn.col, { selectAll: true });
+      return;
+    }
+
+    if (wasDragging) {
+      this.refreshSelectionUI();
+    }
   }
 
   handleDocumentMouseMove(event) {
@@ -612,12 +628,35 @@ export class SpreadsheetApp {
     const colHeader = target.closest('.col-header');
 
     if (this.drag.kind === 'cell' && cell) {
-      this.updateDragSelection(Number(cell.dataset.row), Number(cell.dataset.col));
+      const coords = this.getCellCoordsFromElement(cell);
+      if (coords) {
+        this.updateDragSelection(coords.row, coords.col);
+      }
     } else if (this.drag.kind === 'row' && rowHeader) {
-      this.updateDragSelection(Number(rowHeader.dataset.row), 0);
+      const row = Number(rowHeader.dataset.row);
+      if (!Number.isNaN(row)) {
+        this.updateDragSelection(row, 0);
+      }
     } else if (this.drag.kind === 'column' && colHeader) {
-      this.updateDragSelection(0, Number(colHeader.dataset.col));
+      const col = Number(colHeader.dataset.col);
+      if (!Number.isNaN(col)) {
+        this.updateDragSelection(0, col);
+      }
     }
+  }
+
+  getCellCoordsFromElement(cell) {
+    let row = Number(cell.dataset.row);
+    let col = Number(cell.dataset.col);
+    if (!Number.isNaN(row) && !Number.isNaN(col)) {
+      return { row, col };
+    }
+    const id = cell.querySelector('.cell-input')?.id ?? '';
+    const match = /^cell-input-(\d+)-(\d+)$/.exec(id);
+    if (!match) {
+      return null;
+    }
+    return { row: Number(match[1]), col: Number(match[2]) };
   }
 
   enterEditMode(row, col, { selectAll = false } = {}) {

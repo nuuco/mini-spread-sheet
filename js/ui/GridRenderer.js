@@ -287,18 +287,31 @@ export class GridRenderer {
     });
 
     input.addEventListener('blur', () => {
+      if (app.drag.active) {
+        return;
+      }
       const { row, col } = coords();
       GridRenderer.collapseInputSelection(input);
       app.exitEditMode(row, col);
     });
+  }
 
-    cell.addEventListener('mousedown', (event) => {
+  bindGridPointerEvents(table) {
+    table.addEventListener('mousedown', (event) => {
       if (event.button !== 0) {
         return;
       }
+      const cell = event.target.closest('td.cell');
+      if (!cell) {
+        return;
+      }
       event.preventDefault();
-      const { row, col } = coords();
-      app.beginDragSelection('cell', row, col, event.shiftKey);
+      const row = Number(cell.dataset.row);
+      const col = Number(cell.dataset.col);
+      if (Number.isNaN(row) || Number.isNaN(col)) {
+        return;
+      }
+      this.app.beginDragSelection('cell', row, col, event.shiftKey);
     });
   }
 
@@ -420,7 +433,7 @@ export class GridRenderer {
   }
 
   syncCellValues() {
-    const { model, app } = this.app;
+    const { model } = this.app;
     const skipCell =
       model.mode === 'edit' && model.isSingleCellSelection()
         ? model.getActiveCell()
@@ -450,9 +463,9 @@ export class GridRenderer {
   }
 
   finishRender() {
-    const { model, app } = this.app;
+    const { model } = this.app;
     model.clampSelection();
-    app.refreshSelectionUI();
+    this.app.refreshSelectionUI();
   }
 
   renderFull() {
@@ -472,6 +485,7 @@ export class GridRenderer {
       table.appendChild(this.createBodyRow(row));
     }
 
+    this.bindGridPointerEvents(table);
     this.container.replaceChildren(table);
     this.table = table;
     this.renderedRows = model.rows;

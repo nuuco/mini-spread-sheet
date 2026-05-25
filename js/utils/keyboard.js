@@ -78,6 +78,11 @@ export function isEditingCellInputEvent(event) {
   return Boolean(event.target.closest('.cell.editing .cell-input'));
 }
 
+/** 선택 모드(비편집)에서 포커스된 셀 textarea — 방향키는 document에서 선처리 */
+export function isSelectModeCellInputEvent(event) {
+  return Boolean(event.target.closest('.cell:not(.editing) .cell-input'));
+}
+
 export function isCellInsertBeforeInput(event) {
   const { inputType } = event;
   if (!inputType) {
