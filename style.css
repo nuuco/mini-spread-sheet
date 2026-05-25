@@ -270,6 +270,14 @@ body {
   color: #8f9dab;
 }
 
+.history-btn--reset:hover:not(:disabled) {
+  border-color: rgba(220, 38, 38, 0.35);
+}
+
+.history-btn--reset:hover:not(:disabled) .history-btn-icon {
+  color: var(--color-danger);
+}
+
 .help-guide-btn {
   display: inline-flex;
   align-items: center;
@@ -566,6 +574,92 @@ body.is-dragging .col-header {
 
 .help-guide-modal.hidden {
   display: none;
+}
+
+.reset-confirm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.reset-confirm-modal.hidden {
+  display: none;
+}
+
+.reset-confirm-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.reset-confirm-panel {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  padding: 22px 22px 18px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-menu);
+}
+
+.reset-confirm-title {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.reset-confirm-message {
+  margin: 0 0 20px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.reset-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.reset-confirm-btn {
+  min-width: 88px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.reset-confirm-btn--secondary {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+}
+
+.reset-confirm-btn--secondary:hover {
+  background: var(--color-bg-muted);
+  color: var(--color-text);
+}
+
+.reset-confirm-btn--danger {
+  border: none;
+  background: var(--color-danger);
+  color: var(--color-text-inverse);
+}
+
+.reset-confirm-btn--danger:hover {
+  background: #b91c1c;
 }
 
 .help-guide-backdrop {

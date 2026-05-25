@@ -28,4 +28,8 @@ export class StorageService {
   save(model) {
     localStorage.setItem(this.key, JSON.stringify(model.toPayload()));
   }
+
+  clear() {
+    localStorage.removeItem(this.key);
+  }
 }

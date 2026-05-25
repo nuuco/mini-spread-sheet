@@ -51,4 +51,9 @@ export class UndoStack {
     this.undoStack.push(currentSnapshot);
     return this.redoStack.pop();
   }
+
+  clear() {
+    this.undoStack = [];
+    this.redoStack = [];
+  }
 }

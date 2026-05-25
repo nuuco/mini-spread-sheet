@@ -663,3 +663,13 @@ Jest처럼 테스트 파일을 repo에 추가하는 방식 말고, 체크리스�
 > 의도/반영: **원인** — `isEditingCellInputEvent`가 DOM `.editing`만 보고 `model.mode`와 어긋나면 document가 Enter를 무시함. `mode === 'edit'`인데 UI는 선택처럼 보이면 Enter가 아래 셀 이동으로만 처리되기도 함. blur 시 `exitEditMode(row,col)` 가드로 편집 종료가 누락될 수 있음. **수정** — `isEditingCellInputEvent`는 `mode === 'edit'`일 때만 document에 위임. `enterEditModeAtActiveCell()`로 활성 셀 단일 범위 맞춘 뒤 편집 진입. 선택 모드 활성 `textarea` **capture** `keydown`에서 Enter 처리(`isEnterKey`, IME 조합 중 제외). blur는 `isEditingActiveCell`일 때 `exitEditMode()`로 완전 종료. AGENTS.md 반영.
 
 ---
+
+- 프롬프트:
+
+```
+초기화 버튼도 있으면 좋을 것 같아. 다시 실행 버튼 오른쪽에 두면 될 것 같고, 클릭할 때는 확인 모달이 넣어줘.
+```
+
+> 의도/반영: 툴바 **다시 실행** 오른쪽에 시트 **초기화** 버튼(`#reset-btn`, 새로고침 아이콘) 추가. 클릭 시 `ResetConfirmModal`로 제목·데이터·undo·localStorage 삭제 안내 후 **취소** / **초기화**. 확인 시 `resetSheet()` — `SpreadsheetModel.resetToDefaults()`(5×5 빈 시트), `UndoStack.clear()`, `StorageService.clear()` 후 빈 상태 저장, 그리드 재렌더·선택 해제. 모달 열림 시 그리드 단축키 차단(`#reset-confirm-modal`, `reset-confirm-open`). 사용 가이드에 「시트 초기화」 항목·AGENTS.md 반영.
+
+---

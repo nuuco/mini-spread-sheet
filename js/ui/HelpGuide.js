@@ -43,6 +43,11 @@ const GUIDE_ROWS = [
     description:
       '입력한 내용은 브라우저에 자동으로 저장되니, 새로고침해도 그대로 남아 있어요.',
   },
+  {
+    feature: '시트 초기화',
+    description:
+      '다시 실행 버튼 옆 초기화 버튼을 누르면 확인 창이 뜹니다. 확인하면 제목·데이터·실행 취소 기록이 모두 지워지고 빈 5×5 시트로 돌아갑니다.',
+  },
 ];
 
 export class HelpGuide {

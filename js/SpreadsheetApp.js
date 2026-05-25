@@ -28,6 +28,7 @@ import { GridRenderer } from './ui/GridRenderer.js';
 import { SheetTitleEditor } from './ui/SheetTitleEditor.js';
 import { ContextMenu } from './ui/ContextMenu.js';
 import { HelpGuide } from './ui/HelpGuide.js';
+import { ResetConfirmModal } from './ui/ResetConfirmModal.js';
 
 export class SpreadsheetApp {
   constructor() {
@@ -58,6 +59,9 @@ export class SpreadsheetApp {
     });
 
     this.helpGuide = new HelpGuide();
+    this.resetConfirm = new ResetConfirmModal({
+      onConfirm: () => this.resetSheet(),
+    });
 
     this.refs = {
       coordinate: document.getElementById('cell-coordinate'),
@@ -136,6 +140,8 @@ export class SpreadsheetApp {
           !event.target.closest('#context-menu') &&
           !event.target.closest('#help-guide-modal') &&
           !event.target.closest('#help-guide-btn') &&
+          !event.target.closest('#reset-confirm-modal') &&
+          !event.target.closest('#reset-btn') &&
           !event.target.closest('.toolbar-history')
         ) {
           this.clearCellSelection();
@@ -319,6 +325,26 @@ export class SpreadsheetApp {
     this.updateHistoryButtons();
   }
 
+  resetSheet() {
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    this.finishTitleEditIfActive();
+    this.blurActiveCellInput();
+    this.contextMenu.hide();
+    this.model.resetToDefaults();
+    this.history.clear();
+    this.editUndoRecorded = false;
+    this.titleEditor.applyToField();
+    this.grid.render();
+    this.model.clearSelection();
+    this.storage.clear();
+    this.storage.save(this.model);
+    this.refreshSelectionUI();
+    this.updateHistoryButtons();
+  }
+
   blurActiveCellInput() {
     if (document.activeElement?.classList.contains('cell-input')) {
       document.activeElement.blur();
@@ -356,7 +382,8 @@ export class SpreadsheetApp {
     if (
       active?.closest('.toolbar') ||
       active?.closest('#sheet-title-wrap') ||
-      active?.closest('#help-guide-modal')
+      active?.closest('#help-guide-modal') ||
+      active?.closest('#reset-confirm-modal')
     ) {
       return;
     }

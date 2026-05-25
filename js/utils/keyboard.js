@@ -12,7 +12,13 @@ export function isGridKeyboardTarget(event) {
   if (event.target.closest('#help-guide-modal')) {
     return false;
   }
+  if (event.target.closest('#reset-confirm-modal')) {
+    return false;
+  }
   if (document.body.classList.contains('help-guide-open')) {
+    return false;
+  }
+  if (document.body.classList.contains('reset-confirm-open')) {
     return false;
   }
   return true;
