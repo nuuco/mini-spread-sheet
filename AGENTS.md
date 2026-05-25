@@ -60,3 +60,4 @@
 - 스크린샷·Export 샘플: `docs/screenshots/app-screenshot.png`, `exports/export_excel_sample.xlsx` README 링크
 - 선택 모드 Enter 편집 진입: `isEditingCellInputEvent`에 `mode==='edit'` 연동·활성 셀 capture Enter·blur `exitEditMode()` 보완
 - README 배포 링크: GitHub Pages URL 상단·실행 방법 섹션 추가
+- TROUBLESHOOTING_KOREAN_IME.md: §1~5 해결 절 끝 **요약** 한 줄만 추가(본문 유지)

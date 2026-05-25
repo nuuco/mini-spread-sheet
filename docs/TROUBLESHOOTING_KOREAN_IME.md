@@ -42,6 +42,8 @@ Vanilla JS 스프레드시트에서 `textarea` 기반 셀 편집 시 겪었던 *
 - **선택 모드** Enter → 편집 진입: document `keydown`에서 `enterEditMode` (`isEditingCellInputEvent`가 false일 때, 즉 `.cell.editing`이 아닐 때).
 - document 단축키 전체: `isEditingCellInputEvent()` — **`.cell.editing .cell-input`에 포커스가 있으면** document 쪽에서 return (선택 모드 포커스 `.cell:not(.editing)`와 구분).
 
+**요약:** `isComposingInput`·`imeComposing`으로 조합 중 Enter는 막고, 편집 모드에서만 Enter로 아래 셀로 내려가게 해서 Enter 시 한글이 잘리던 문제를 고쳤다.
+
 **관련 파일:** `js/utils/keyboard.js`, `js/ui/GridRenderer.js`, `js/SpreadsheetApp.js`
 
 ---
@@ -56,6 +58,8 @@ Vanilla JS 스프레드시트에서 `textarea` 기반 셀 편집 시 겪었던 *
 - `GridRenderer.isInputComposing()`이 true면 `syncEditingInput`에서 `layoutEditingInput`·`handleCellInput` **스킵**
 - `compositionend` → `delete imeComposing` 후 `requestAnimationFrame`으로 한 번만 `syncEditingInput`
 - `updateCellsUI()`는 편집 중 매 refresh마다 `layoutEditingInput`을 **호출하지 않음** (편집 셀은 `input` 이벤트·`needsEditingOverlay` 경로만)
+
+**요약:** `imeComposing` 플래그를 두고 조합이 끝날 때까지 `layoutEditingInput`·저장 동기화를 쉬게 해서, 한글 치는 도중 셀 크기를 바꿔 자모가 깨지던 문제를 고쳤다.
 
 **관련 파일:** `js/ui/GridRenderer.js`, `js/SpreadsheetApp.js` (`updateCellsUI`)
 
@@ -72,6 +76,8 @@ Vanilla JS 스프레드시트에서 `textarea` 기반 셀 편집 시 겪었던 *
 - 트리거: `beforeinput` + `isCellInsertBeforeInput` (`GridRenderer.bindCellEvents`).
 - **활성 셀에 포커스가 있는 선택 모드**에서는 document `startTypingInActiveCell`을 **쓰지 않음** (§5). 영문·한글·완성 음절 모두 `beforeinput` / IME 경로.
 - **선택은 있으나 셀 textarea에 포커스가 없을 때**만 `startTypingInActiveCell` (그리드 밖 포커스 등).
+
+**요약:** `select()` 대신 `prepareCellEditFromInput`에서 값을 비운 뒤 `beforeinput`·IME로만 입력하게 해서, 셀만 고르고 치면 새 글이 뒤에 붙던 문제를 고쳤다.
 
 **관련 파일:** `js/SpreadsheetApp.js`, `js/ui/GridRenderer.js`
 
@@ -94,6 +100,8 @@ Vanilla JS 스프레드시트에서 `textarea` 기반 셀 편집 시 겪었던 *
 2. **`focusSelectedCellInput()`** — 단일 셀 선택·편집일 때만 활성 셀 `textarea`에 `focus({ preventScroll: true })`. 범위 선택(여러 칸)일 때는 포커스 안 가져감. 툴바·제목·가이드 모달 포커스 중에는 건너뜀.
 3. **`prepareCellEditFromInput()`** — `beforeinput`(insert 계열), 필요 시 셀 `keydown` capture + `shouldRouteToImeInput`(자모·229·Process). 값 clear, `select()` 없음, 즉시 `.editing`·`readOnly` 해제. `expectComposition`일 때만 선행 `imeComposing`. `refreshSelectionUI`는 `queueMicrotask`.
 4. **CSS** — `.cell-input[readonly] { pointer-events: none }`, `.cell-input[readonly]:focus { pointer-events: auto }`. 선택 모드 활성 셀은 `.cell.active-cell:not(.editing) .cell-input { caret-color: transparent }`.
+
+**요약:** 활성 셀만 `readOnly`를 풀고 포커스를 주며, `prepareCellEditFromInput`으로 `select()`·즉시 레이아웃 없이 편집에 들어가게 해서, 첫 한글만 조합이 깨지던 문제를 고쳤다.
 
 **관련 파일:** `js/SpreadsheetApp.js`, `js/ui/GridRenderer.js`, `js/utils/keyboard.js`, `style.css`
 
@@ -124,6 +132,8 @@ this.startTypingInActiveCell(event.key);
 - `isSelectModeCellInputEvent` — `keyboard.js`, `closest('.cell:not(.editing) .cell-input')`
 - 포커스된 선택 모드 셀에서는 **한글·영문 구분 없이** `startTyping` 차단 → `beforeinput`·IME만 사용
 - `prepareCellEditFromInput`은 이미 `mode === 'edit'`이면 return → keydown·beforeinput 이중 호출해도 한 번만 전환
+
+**요약:** `isSelectModeCellInputEvent`로 선택 모드·포커스된 셀에서는 `startTypingInActiveCell`을 쓰지 않게 해서, 앱이 먼저 넣은 글자와 IME 결과가 겹쳐 `ㄱ가방`처럼 보이던 문제를 고쳤다.
 
 **관련 파일:** `js/SpreadsheetApp.js` (`bindGlobalEvents`), `js/utils/keyboard.js`
 
