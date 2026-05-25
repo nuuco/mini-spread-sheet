@@ -305,13 +305,16 @@ export class GridRenderer {
       if (!cell) {
         return;
       }
-      event.preventDefault();
       const row = Number(cell.dataset.row);
       const col = Number(cell.dataset.col);
       if (Number.isNaN(row) || Number.isNaN(col)) {
         return;
       }
-      this.app.beginDragSelection('cell', row, col, event.shiftKey);
+      const started = this.app.beginDragSelection('cell', row, col, event.shiftKey);
+      if (!started) {
+        return;
+      }
+      event.preventDefault();
     });
   }
 

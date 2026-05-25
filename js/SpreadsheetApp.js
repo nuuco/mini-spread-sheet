@@ -501,10 +501,24 @@ export class SpreadsheetApp {
     this.refreshSelectionUI();
   }
 
+  isEditingActiveCell(row, col) {
+    if (this.model.mode !== 'edit' || !this.model.isSingleCellSelection()) {
+      return false;
+    }
+    const active = this.model.getActiveCell();
+    return active.row === row && active.col === col;
+  }
+
+  /** @returns {boolean} 드래그 선택을 시작했으면 true (false면 mousedown 기본 동작 유지) */
   beginDragSelection(kind, row, col, extend = false) {
     this.finishTitleEditIfActive();
 
     const { model } = this;
+
+    if (kind === 'cell' && this.isEditingActiveCell(row, col)) {
+      return false;
+    }
+
     this.exitEditMode();
 
     if (kind === 'cell') {
@@ -557,6 +571,7 @@ export class SpreadsheetApp {
     this.drag.pointerDownOn = { row, col };
     document.body.classList.add('is-dragging');
     this.refreshSelectionUI();
+    return true;
   }
 
   updateDragSelection(row, col) {
