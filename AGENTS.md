@@ -62,3 +62,5 @@
 - README 배포 링크: GitHub Pages URL 상단·실행 방법 섹션 추가
 - TROUBLESHOOTING_KOREAN_IME.md: §1~5 해결 절 끝 **요약** 한 줄만 추가(본문 유지)
 - 시트 초기화: 다시 실행 옆 버튼·확인 모달·모델·undo·localStorage 초기화·README·PRD/SRD/TRD·가이드 반영
+- Export 버튼 UI: 다운로드 아이콘·모바일 아이콘만·툴바 버튼 높이 40px 통일
+- 툴바 버튼 높이 재수정: `--toolbar-btn-height` 고정 height·세로 padding 제거·아이콘 20px 통일

@@ -39,6 +39,7 @@
   --shadow-menu: 0 8px 28px rgba(15, 23, 42, 0.12);
 
   --grid-row-height: 36px;
+  --toolbar-btn-height: 40px;
 }
 
 *,
@@ -215,16 +216,28 @@ body {
   margin-right: 4px;
 }
 
-.history-btn {
+.history-btn,
+.help-guide-btn,
+.export-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  min-height: 40px;
-  padding: 8px 10px;
-  border: 1px solid var(--color-border);
+  height: var(--toolbar-btn-height);
+  min-height: var(--toolbar-btn-height);
+  max-height: var(--toolbar-btn-height);
+  box-sizing: border-box;
+  padding: 0 10px;
+  margin: 0;
+  font-family: inherit;
+  line-height: 1;
   border-radius: var(--radius-sm);
-  background: var(--color-bg-surface);
   cursor: pointer;
+}
+
+.history-btn {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
@@ -241,11 +254,16 @@ body {
   cursor: not-allowed;
 }
 
-.history-btn-icon {
+.history-btn-icon,
+.help-guide-btn-icon,
+.export-btn-icon {
   flex-shrink: 0;
   display: block;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
+}
+
+.history-btn-icon {
   color: var(--color-icon);
   transition: color 0.15s ease;
 }
@@ -279,17 +297,13 @@ body {
 }
 
 .help-guide-btn {
-  display: inline-flex;
-  align-items: center;
   gap: 5px;
-  padding: 10px 14px 10px 10px;
+  padding: 0 12px 0 10px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
   background: var(--color-bg-surface);
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  cursor: pointer;
   transition:
     background 0.15s ease,
     color 0.15s ease,
@@ -297,8 +311,11 @@ body {
 }
 
 .help-guide-btn-icon {
-  flex-shrink: 0;
   opacity: 0.85;
+}
+
+.help-guide-btn-label {
+  line-height: 1;
 }
 
 .help-guide-btn:hover {
@@ -309,18 +326,21 @@ body {
 
 .export-btn {
   flex-shrink: 0;
-  padding: 10px 18px;
-  border: none;
-  border-radius: var(--radius-sm);
+  gap: 6px;
+  padding: 0 14px 0 12px;
+  border: 1px solid transparent;
   background: var(--color-action);
   color: var(--color-text-inverse);
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  cursor: pointer;
   box-shadow: 0 1px 2px rgba(20, 24, 31, 0.06);
   transition:
     background 0.15s ease,
     box-shadow 0.15s ease;
+}
+
+.export-btn-text {
+  line-height: 1;
 }
 
 .export-btn:hover {
@@ -328,7 +348,6 @@ body {
   box-shadow: 0 2px 10px rgba(22, 163, 74, 0.35);
 }
 
-.export-btn-text--short,
 .help-guide-btn-label--short {
   display: none;
 }
@@ -829,19 +848,8 @@ body.help-guide-open {
     font-size: 0.75rem;
   }
 
-  .help-guide-btn,
-  .export-btn,
-  .history-btn {
-    min-height: 40px;
-    font-size: 0.875rem;
-  }
-
   .history-btn-shortcut {
     display: none;
-  }
-
-  .export-btn {
-    padding: 10px 14px;
   }
 
   .help-guide-modal {
@@ -882,15 +890,18 @@ body.help-guide-open {
 
   .help-guide-btn {
     gap: 5px;
-    padding: 10px 12px 10px 10px;
+    padding: 0 12px 0 10px;
   }
 
-  .export-btn-text--full {
+  .export-btn-text {
     display: none;
   }
 
-  .export-btn-text--short {
-    display: inline;
+  .export-btn {
+    flex: 0 0 auto;
+    gap: 0;
+    width: var(--toolbar-btn-height);
+    padding: 0;
   }
 
   .toolbar-actions {
@@ -908,13 +919,18 @@ body.help-guide-open {
   .history-btn {
     flex: 1;
     justify-content: center;
-    padding: 10px;
+    padding: 0 10px;
   }
 
-  .help-guide-btn,
-  .export-btn {
+  .help-guide-btn {
     display: inline-flex;
     flex: 1;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .export-btn {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
   }
