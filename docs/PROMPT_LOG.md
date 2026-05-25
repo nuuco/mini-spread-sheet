@@ -652,3 +652,14 @@ Jest처럼 테스트 파일을 repo에 추가하는 방식 말고, 체크리스�
 > 의도/반영: document `keydown`이 `startTypingInActiveCell`로 첫 자모를 먼저 넣고, 이어서 IME가 조합해 넣으면서 앞글자가 겹침. 포커스된 활성 셀에서는 `startTyping`을 건너뛰고 `beforeinput`·IME만 쓰도록 수정. IME 트러블슈팅 문서·체크리스트에 같은 주의 항목 반영.
 
 ---
+
+- 프롬프트:
+
+```
+선택 모드에서 Enter를 누르면 편집 모드로 들어가야 하는데, 동작하지 않는다.
+(기대: 선택만 한 상태 + Enter → 편집 시작 / 편집 중 + Enter → 아래 셀 이동)
+```
+
+> 의도/반영: **원인** — `isEditingCellInputEvent`가 DOM `.editing`만 보고 `model.mode`와 어긋나면 document가 Enter를 무시함. `mode === 'edit'`인데 UI는 선택처럼 보이면 Enter가 아래 셀 이동으로만 처리되기도 함. blur 시 `exitEditMode(row,col)` 가드로 편집 종료가 누락될 수 있음. **수정** — `isEditingCellInputEvent`는 `mode === 'edit'`일 때만 document에 위임. `enterEditModeAtActiveCell()`로 활성 셀 단일 범위 맞춘 뒤 편집 진입. 선택 모드 활성 `textarea` **capture** `keydown`에서 Enter 처리(`isEnterKey`, IME 조합 중 제외). blur는 `isEditingActiveCell`일 때 `exitEditMode()`로 완전 종료. AGENTS.md 반영.
+
+---
