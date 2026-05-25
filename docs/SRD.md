@@ -99,7 +99,7 @@ flowchart TB
 | ID | 요구사항 | 우선순위 | 수용 기준 |
 |----|----------|----------|-----------|
 | FR-033 | Cmd/Ctrl+Z로 실행 취소, Shift+Z 또는 Ctrl+Y로 다시 실행한다. | 선택 | 스택 최대 100 |
-| FR-034 | undo/redo는 `rows`, `cols`, `data` 스냅샷을 복원한다. | 선택 | 제목은 스냅샷 제외 |
+| FR-034 | undo/redo는 `rows`, `cols`, `data` 스냅샷을 복원한다. | 선택 | 제목은 스냅샷 제외. 구현·성능: [UNDO_REDO.md](./UNDO_REDO.md) |
 | FR-035 | Cmd/Ctrl+C로 선택 영역을 TSV로 복사한다. | 선택 | |
 | FR-036 | Cmd/Ctrl+V로 HTML 표·TSV·마크다운 표를 붙여넣는다. | 선택 | 구분선 행 스킵 |
 | FR-037 | 붙여넣기 범위가 그리드를 넘으면 행·열을 자동 확장한다. | 선택 | `ensureGridSize` |

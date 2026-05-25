@@ -3,6 +3,7 @@
 JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 셀 입력, 범위·행·열·전체 시트 선택, 포커스 좌표 표시, 행/열 헤더 하이라이트, 데이터 수집, Excel(.xlsx) Export, 실행 취소·다시 실행, 복사·붙여넣기, localStorage 자동 저장을 제공합니다.
 
 요구사항 문서: [docs/PRD.md](docs/PRD.md) · [docs/SRD.md](docs/SRD.md) · [docs/TRD.md](docs/TRD.md)  
+설계 상세: [docs/UNDO_REDO.md](docs/UNDO_REDO.md) (실행 취소·다시 실행)  
 트러블슈팅: [docs/TROUBLESHOOTING_KOREAN_IME.md](docs/TROUBLESHOOTING_KOREAN_IME.md) (한글 IME)
 
 ## 기능 목록 (요약)
@@ -94,6 +95,7 @@ JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 
 
 - **그리드 데이터·행·열 개수**만 스냅샷합니다 (최대 **100단계**). 시트 제목 변경은 undo 대상이 아닙니다.
 - 되돌릴 수 있는 예: 셀 편집, 선택 영역 삭제, 행·열 추가·삭제, 붙여넣기 등 `pushUndoSnapshot`이 호출되는 작업.
+- 구현·성능·확장 시 우려: [docs/UNDO_REDO.md](docs/UNDO_REDO.md)
 
 ### 복사·붙여넣기
 
@@ -183,6 +185,7 @@ const CONFIG = {
 ├── AGENTS.md
 ├── docs/
 │   ├── PRD.md · SRD.md · TRD.md
+│   ├── UNDO_REDO.md
 │   └── TROUBLESHOOTING_KOREAN_IME.md
 └── exports/
 ```

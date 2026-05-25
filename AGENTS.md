@@ -56,3 +56,4 @@
 - 선택 모드 한글 첫 입력 중복: document `startTypingInActiveCell`이 IME와 겹치지 않도록 포커스 셀은 제외
 - TROUBLESHOOTING_KOREAN_IME.md: 코드 대조·이벤트 순서·§5 해결 방법 최신화
 - 편집 중 같은 셀 재클릭: beginDragSelection 스킵·preventDefault 안 함 → 선택 모드로 안 떨어짐
+- docs/UNDO_REDO.md: 실행 취소·다시 실행 스냅샷 구현·push 시점·성능 우려·확장 개선안 정리

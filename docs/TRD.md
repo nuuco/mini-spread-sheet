@@ -257,6 +257,8 @@ function saveToLocalStorage() {
 | redo | undo 시 현재 상태를 redo 스택에 push |
 | 단축키 | `Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z`, `Ctrl+Y` |
 
+상세(코드 위치·push 시점 표·성능 우려·확장 시 개선안): **[UNDO_REDO.md](./UNDO_REDO.md)**.
+
 `bindKeyboardEvents`: 툴바·사용 가이드 모달(`#help-guide-modal`, `body.help-guide-open`) 포커스 시 그리드 단축키 비활성 (`isGridKeyboardTarget`).
 
 ---
