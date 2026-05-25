@@ -642,3 +642,13 @@ Jest처럼 테스트 파일을 repo에 추가하는 방식 말고, 체크리스�
 > 의도/반영: `GridRenderer.finishRender()`에서 `this.app`을 `{ model, app }`처럼 잘못 풀어 `refreshSelectionUI` 호출이 터지던 게 원인. 렌더·undo 직후 선택 표시가 안 됐음. `this.app.refreshSelectionUI()`로 수정 후 드래그·방향키·행 선택 다시 확인.
 
 ---
+
+- 프롬프트:
+
+```
+셀만 선택한 상태에서 바로 한글 치면 첫 글자가 한 번 더 들어가. 가방 쓰면 ㄱ가방처럼 나와. 편집 모드로 들어간 뒤엔 괜찮은데 선택 모드에서 바로 입력할 때만 그래.
+```
+
+> 의도/반영: document `keydown`이 `startTypingInActiveCell`로 첫 자모를 먼저 넣고, 이어서 IME가 조합해 넣으면서 앞글자가 겹침. 포커스된 활성 셀에서는 `startTyping`을 건너뛰고 `beforeinput`·IME만 쓰도록 수정. IME 트러블슈팅 문서·체크리스트에 같은 주의 항목 반영.
+
+---

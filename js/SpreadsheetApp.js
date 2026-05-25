@@ -222,6 +222,10 @@ export class SpreadsheetApp {
         if (!isTypingKey(event)) {
           return;
         }
+        // 활성 셀에 포커스된 선택 모드: beforeinput·IME만 처리 (선삽입 시 ㄱ가방 같은 중복 방지)
+        if (isSelectModeCellInputEvent(event)) {
+          return;
+        }
         event.preventDefault();
         this.startTypingInActiveCell(event.key);
       },

@@ -10,6 +10,7 @@ Vanilla JS 스프레드시트에서 `textarea` 기반 셀 편집 시 발생했�
 | 자모가 분리되어 입력됨 | `임자` → `ㅇㅣㅁ자`처럼 조합되지 않음 |
 | 기존 값 뒤에 글자가 붙음 | 셀에 `hello`가 있는데 선택 후 `안녕` 입력 → `hello안녕` |
 | 첫 글자만 조합 실패 | 첫 입력은 깨지고, 지운 뒤 다시 치면 정상 |
+| 선택 모드에서 첫 한글이 한 번 더 붙음 | `가방` 입력 → `ㄱ가방` (편집 모드로 들어간 뒤에는 정상) |
 
 여러 원인이 겹쳐 있어 한 번의 수정으로 해결되지 않았고, **증상별로 원인을 나눠** 대응한 뒤 마지막에 **선택 모드 → 첫 입력** 경로를 정리했습니다.
 
@@ -55,13 +56,13 @@ Vanilla JS 스프레드시트에서 `textarea` 기반 셀 편집 시 발생했�
 
 - 입력 시작 시 `input.select()`로 덮어쓰기를 시도하지 않음 (첫 조합을 깨뜨림, 아래 4번 참고)
 - `prepareCellEditFromInput()`에서 **기존 값을 clear** (`input.value`·`model.data` 비움) 후 IME/브라우저가 새로 입력
-- 완성된 한글 음절 한 글자·영문 등은 기존처럼 `startTypingInActiveCell()`로 한 글자 교체
+- 완성된 한글 음절 한 글자·영문 등은 **활성 셀에 포커스가 없을 때만** `startTypingInActiveCell()`로 한 글자 교체 (아래 5번 참고)
 
 **관련 파일:** `js/SpreadsheetApp.js` (`prepareCellEditFromInput`, `startTypingInActiveCell`)
 
 ---
 
-### 4. 첫 글자만 조합 실패 (최종 핵심)
+### 4. 첫 글자만 조합 실패
 
 **원인 (복합):**
 
@@ -94,17 +95,48 @@ Vanilla JS 스프레드시트에서 `textarea` 기반 셀 편집 시 발생했�
 
 ---
 
+### 5. 선택 모드에서 첫 한글 이중 입력 (`ㄱ가방`)
+
+**원인:** 활성 셀 `textarea`에 포커스가 있는 선택 모드에서 한글을 치면, 이벤트가 두 갈래로 겹친다.
+
+1. **document `keydown`(capture)** — `isTypingKey`로 판별되면 `startTypingInActiveCell()`이 **첫 키(자모 `ㄱ` 등)를 먼저** `input.value`·`model.data`에 넣는다.
+2. **`beforeinput` / IME** — `prepareCellEditFromInput()`으로 편집 전환·값 clear 후, 브라우저 IME가 조합 결과(`가방` 등)를 다시 넣는다.
+
+document 핸들러가 input보다 **먼저** 실행되므로, 편집 모드(이미 `.cell.editing`)에서는 `startTyping` 경로를 타지 않아 문제가 없고, **선택 모드 + 활성 셀 포커스**일 때만 재현된다.
+
+**해결:**
+
+- document `keydown`에서 타이핑 처리 직전, `isSelectModeCellInputEvent(event)`이면 **`startTypingInActiveCell` 호출하지 않음** (return).
+- 해당 경우 입력은 **`beforeinput` → `prepareCellEditFromInput`** 과 셀 쪽 IME `keydown` capture(`shouldRouteToImeInput`)만 담당.
+- 그리드 밖에 포커스가 있거나 셀 포커스 없이 키를 칠 때는 기존처럼 `startTypingInActiveCell` 유지.
+
+```javascript
+// SpreadsheetApp.js — document keydown (capture) 일부
+if (isSelectModeCellInputEvent(event)) {
+  return;
+}
+event.preventDefault();
+this.startTypingInActiveCell(event.key);
+```
+
+**관련 파일:** `js/SpreadsheetApp.js` (`bindGlobalEvents`), `js/utils/keyboard.js` (`isSelectModeCellInputEvent`, `isTypingKey`)
+
+---
+
 ## 데이터·이벤트 흐름 (선택 모드 → 한글 첫 입력)
 
 ```mermaid
 sequenceDiagram
   participant User
+  participant Doc as document keydown
   participant Input as cell textarea
   participant App as SpreadsheetApp
   participant GR as GridRenderer
 
   User->>Input: keydown (자모/229)
-  Input->>App: prepareCellEditFromInput (capture)
+  Input->>Doc: capture (버블 전)
+  Note over Doc: isSelectModeCellInput이면 startTyping 스킵
+  Input->>App: prepareCellEditFromInput (input capture)
   App->>App: mode=edit, clear value, imeComposing?
   User->>Input: beforeinput / compositionstart
   Input->>GR: markImeComposing
@@ -122,13 +154,14 @@ sequenceDiagram
 - 선택 후 첫 입력에 **`input.select()`** 로 덮어쓰기 시도
 - 선택된 활성 셀 textarea를 **`readOnly`로 유지**
 - document **`keydown`만**으로 편집 진입 후 첫 키를 IME에 맡기기 (이벤트 타깃이 input이 아님)
+- 포커스된 활성 셀에서 **`startTypingInActiveCell`과 IME가 동시에** 첫 자모를 넣기 (`ㄱ가방` 중복)
 - 조합 여부와 관계없이 **`imeComposing` 항상 설정** (영문 입력 후 레이아웃이 안 맞을 수 있음)
 
 ---
 
 ## 검증 체크리스트
 
-- [ ] 빈 셀 선택 → `임자`, `아이디어` — **첫 글자부터** 정상 조합
+- [ ] 빈 셀 선택 → `가방`, `임자`, `아이디어` — **첫 글자부터** 정상 조합(앞에 자모 한 번 더 붙지 않음)
 - [ ] 값 있는 셀 선택 → `안녕` — **기존 값 대체**, 뒤에 붙지 않음
 - [ ] `아이디어` 입력 후 Enter — A2 비어 있고 포커스만 A2
 - [ ] 편집 중 Cmd/Ctrl+Enter — 셀 내 줄바꿈
@@ -144,6 +177,7 @@ sequenceDiagram
 | `isComposingInput` | `keyboard.js` | 조합 중 키 이벤트 판별 |
 | `shouldRouteToImeInput` | `keyboard.js` | 자모·229 등 IME 경로 (완성 음절 한 글자 제외) |
 | `isEditingCellInputEvent` | `keyboard.js` | `.cell.editing` 기준 document 키 제외 |
+| `isSelectModeCellInputEvent` | `keyboard.js` | 선택 모드 포커스 셀 — `startTyping` 제외 |
 | `isCellInsertBeforeInput` | `keyboard.js` | `beforeinput` insert 타입 판별 |
 | `prepareCellEditFromInput` | `SpreadsheetApp.js` | 선택→편집·clear·ime 플래그 |
 | `focusSelectedCellInput` | `SpreadsheetApp.js` | 활성 셀 포커스 |
