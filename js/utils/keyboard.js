@@ -59,7 +59,7 @@ export function isComposingInput(event) {
   return event.isComposing === true || event.keyCode === 229 || event.key === 'Process';
 }
 
-/** 선택 모드에서 IME 조합이 필요한 입력인지 (완성 음절 한 글자는 startTyping으로 처리) */
+/** 선택 모드 input keydown capture — 자모·229·Process일 때 prepare (완성 음절·영문은 beforeinput) */
 export function shouldRouteToImeInput(event) {
   if (isComposingInput(event)) {
     return true;

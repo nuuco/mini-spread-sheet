@@ -54,3 +54,4 @@
 - 선택·방향키 회귀 수정: 드래그 중 readOnly/blur 스킵, capture 방향키, 테이블 mousedown 위임, `isCellInSelection` 복원
 - GridRenderer.finishRender 버그 수정: `const { model, app } = this.app` 오해로 `refreshSelectionUI` 예외 발생하던 문제
 - 선택 모드 한글 첫 입력 중복: document `startTypingInActiveCell`이 IME와 겹치지 않도록 포커스 셀은 제외
+- TROUBLESHOOTING_KOREAN_IME.md: 코드 대조·이벤트 순서·§5 해결 방법 최신화
