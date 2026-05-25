@@ -111,7 +111,9 @@ flowchart TB
 |----|----------|----------|-----------|
 | FR-039 | 툴바에 `N행 × M열` 크기를 표시한다. | 선택 | `#grid-size-label` |
 | FR-040 | Export 버튼 라벨은 `Export Excel`이다. | 필수 | |
-| FR-041 | 사용 가이드 모달이 열려 있을 때 그리드 단축키(화살표·Enter 등)는 동작하지 않는다. | 선택 | `isGridKeyboardTarget` |
+| FR-041 | 사용 가이드·시트 초기화 확인 모달이 열려 있을 때 그리드 단축키(화살표·Enter 등)는 동작하지 않는다. | 선택 | `isGridKeyboardTarget`, `reset-confirm-open` |
+| FR-042 | 다시 실행 버튼 오른쪽에 시트 초기화 버튼을 제공한다. | 선택 | `#reset-btn` |
+| FR-043 | 초기화 클릭 시 확인 모달을 표시하고, 확인 시 제목·데이터·행·열·undo·localStorage를 기본 5×5 빈 시트로 되돌린다. | 선택 | `resetSheet()`, undo 복구 불가 |
 
 ---
 
@@ -189,8 +191,9 @@ flowchart TB
 | 6 | localStorage·제목 복원 | FR-028~032 |
 | 7 | 행·열 컨텍스트 메뉴 | FR-023~027 |
 | 8 | undo/redo, 복사·붙여넣기 | FR-033~038 |
-| 9 | HTML/CSS/JS 분리 | NFR-001 |
-| 10 | README, PROMPT_LOG | 제출 |
+| 9 | 시트 초기화(확인 모달) | FR-042~043 |
+| 10 | HTML/CSS/JS 분리 | NFR-001 |
+| 11 | README, PROMPT_LOG | 제출 |
 
 ---
 
@@ -206,3 +209,4 @@ flowchart TB
 | F-12 | FR-033~034 |
 | F-13 | FR-035~038 |
 | F-14~15 | FR-041, NFR-005 |
+| F-16 | FR-042~043 |

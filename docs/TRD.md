@@ -59,7 +59,7 @@ flowchart LR
 
 | 파일 | 책임 |
 |------|------|
-| `index.html` | 툴바, 그리드 마운트, 가이드 모달, 컨텍스트 메뉴, SheetJS·`js/main.js` 로드 |
+| `index.html` | 툴바, 그리드 마운트, 가이드·초기화 확인 모달, 컨텍스트 메뉴, SheetJS·`js/main.js` 로드 |
 | `style.css` | 그리드·선택·헤더·툴바·메뉴 스타일 |
 | `js/*` | ES modules — `SpreadsheetApp` 조율, `SpreadsheetModel` 상태, UI·services |
 
@@ -124,7 +124,8 @@ let spreadsheet = {
 | 영역 | 요소 | 비고 |
 |------|------|------|
 | 1행 툴바 | `#sheet-title-wrap` | 시트 제목 |
-| 2행 툴바 | `#cell-coordinate`, undo/redo, `#help-guide-btn`, `#export-btn` | 좌표·실행취소·가이드·Export |
+| 2행 툴바 | `#cell-coordinate`, undo/redo/`#reset-btn`, `#help-guide-btn`, `#export-btn` | 좌표·실행취소·초기화·가이드·Export |
+| 플로팅 | `#reset-confirm-modal` | 시트 초기화 확인 (`ResetConfirmModal.js`) |
 | 시트 패널 | `#grid-size-label` | `N행 × M열` (우하단 오버레이) |
 | 본문 | `#spreadsheet` | `<table class="grid-table">` |
 | 플로팅 | `#context-menu` | 행·열 헤더용 |
@@ -259,7 +260,14 @@ function saveToLocalStorage() {
 
 상세(코드 위치·push 시점 표·성능 우려·확장 시 개선안): **[UNDO_REDO.md](./UNDO_REDO.md)**.
 
-`bindKeyboardEvents`: 툴바·사용 가이드 모달(`#help-guide-modal`, `body.help-guide-open`) 포커스 시 그리드 단축키 비활성 (`isGridKeyboardTarget`).
+`bindKeyboardEvents`: 툴바·사용 가이드·초기화 확인 모달(`#help-guide-modal`, `#reset-confirm-modal`, `body.help-guide-open`, `body.reset-confirm-open`) 포커스 시 그리드 단축키 비활성 (`isGridKeyboardTarget`).
+
+### 11.1 시트 초기화 (`resetSheet`)
+
+1. `#reset-btn` → `ResetConfirmModal.open()`.
+2. 확인 → `model.resetToDefaults()`, `history.clear()`, `grid.render()`, `storage.clear()` + 빈 payload 저장, 선택 해제.
+
+undo로 복구할 수 없음.
 
 ---
 
@@ -323,6 +331,7 @@ function saveToLocalStorage() {
 | Export | xlsx 열기, 셀 매핑, 파일명·탭명 |
 | persistence | 새로고침, 제목·크기 |
 | undo | 행 삭제 후 Z |
+| reset | 초기화 확인 후 5×5·저장·undo 비움 |
 | offline Export | CDN 차단 시 alert |
 
 상세 체크리스트: [SRD.md §7](./SRD.md), [README.md](../README.md).

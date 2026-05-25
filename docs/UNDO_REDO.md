@@ -191,6 +191,7 @@ flowchart LR
 ## 9. 알려진 제한 (요구사항과 일치)
 
 - 시트 제목 변경은 undo 대상이 **아님** ([SRD.md](./SRD.md) FR-034, [README.md](../README.md)).
+- **시트 초기화**(`resetSheet`) 시 undo·redo 스택을 `clear()`하며, 초기화 자체는 undo로 되돌릴 수 없음 ([README.md](../README.md)).
 - 선택 상태(`anchor`/`focus`/`selectionKind`)는 스냅샷에 없음. 복원 후 `clampSelection()`으로 범위만 맞춤.
 - 편집 undo는 **한 편집 세션 = undo 1단계** (글자 단위 undo 아님).
 

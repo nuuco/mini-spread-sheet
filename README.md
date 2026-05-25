@@ -1,6 +1,6 @@
 # Mini Spreadsheet
 
-JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 셀 입력, 범위·행·열·전체 시트 선택, 포커스 좌표 표시, 행/열 헤더 하이라이트, 데이터 수집, Excel(.xlsx) Export, 실행 취소·다시 실행, 복사·붙여넣기, localStorage 자동 저장을 제공합니다.
+JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 셀 입력, 범위·행·열·전체 시트 선택, 포커스 좌표 표시, 행/열 헤더 하이라이트, 데이터 수집, Excel(.xlsx) Export, 실행 취소·다시 실행, 시트 초기화, 복사·붙여넣기, localStorage 자동 저장을 제공합니다.
 
 **배포:** [https://nuuco.github.io/mini-spread-sheet/](https://nuuco.github.io/mini-spread-sheet/)
 
@@ -26,7 +26,8 @@ JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 
 - 시트 제목 (툴바 인라인 편집, Export 파일명·탭명)
 - 행·열 추가·삭제 (헤더 오른클릭, 다중 선택 일괄 처리)
 - 범위·행·열·전체 시트 선택 (클릭, 드래그, Shift, 방향키)
-- 실행 취소·다시 실행 (최대 100단계)
+- 실행 취소·다시 실행 (최대 100단계, 툴바 아이콘·단축키)
+- 시트 초기화 (다시 실행 옆 버튼, 확인 모달 후 5×5 빈 시트·저장·undo 초기화)
 - 복사·붙여넣기 (TSV / HTML 표 / 마크다운 표, 그리드 자동 확장)
 - localStorage 자동 저장 (데이터·크기·제목)
 
@@ -91,8 +92,9 @@ JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 
 
 ### 실행 취소·다시 실행
 
-| 단축키 | 동작 |
-|--------|------|
+| 입력 | 동작 |
+|------|------|
+| 툴바 **실행 취소** / **다시 실행** | 아이콘 클릭 (비활성 시 회색, 단축키는 버튼 옆 표기) |
 | **Cmd/Ctrl + Z** | 실행 취소 |
 | **Cmd/Ctrl + Shift + Z** | 다시 실행 |
 | **Ctrl + Y** | 다시 실행 (Windows 스타일) |
@@ -100,6 +102,17 @@ JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 
 - **그리드 데이터·행·열 개수**만 스냅샷합니다 (최대 **100단계**). 시트 제목 변경은 undo 대상이 아닙니다.
 - 되돌릴 수 있는 예: 셀 편집, 선택 영역 삭제, 행·열 추가·삭제, 붙여넣기 등 `pushUndoSnapshot`이 호출되는 작업.
 - 구현·성능·확장 시 우려: [docs/UNDO_REDO.md](docs/UNDO_REDO.md)
+
+### 시트 초기화
+
+| 입력 | 동작 |
+|------|------|
+| 툴바 **초기화** (다시 실행 오른쪽, 새로고침 아이콘) | 확인 모달 표시 |
+| 모달 **초기화** | 제목·셀·행/열 크기·실행 취소 기록·`localStorage`를 한 번에 비우고 기본 **5×5** 빈 시트로 복귀 |
+| 모달 **취소** / Esc / 배경 클릭 | 변경 없이 닫기 |
+
+- 되돌릴 수 없습니다(undo로 복구 불가). 실수 방지를 위해 반드시 확인 단계가 있습니다.
+- 모달이 열려 있는 동안에는 그리드 단축키가 동작하지 않습니다(사용 가이드 모달과 동일).
 
 ### 복사·붙여넣기
 
@@ -117,6 +130,7 @@ JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 
 - **Export Excel**: 그리드 **데이터만** 시트에 넣고, **파일명·워크시트 탭**에 제목 반영 (비어 있으면 `제목없음.xlsx`).  
   위 화면과 동일한 데이터를 Export한 샘플: [exports/export_excel_sample.xlsx](exports/export_excel_sample.xlsx)
 - **localStorage**: 입력·구조 변경 후 **300ms** 뒤 자동 저장 (`mini-spreadsheet-data`: `rows`, `cols`, `data`, `title`).
+- **사용 가이드**: 툴바 「사용 가이드」 버튼 → 모달에서 선택·undo·초기화·Export 등 요약 확인.
 
 ---
 
@@ -153,8 +167,10 @@ const CONFIG = {
 | 열 전체 선택 | 열 헤더 클릭·드래그 |
 | 전체 시트 선택 | 좌상단 **모서리 칸** 클릭 (헤더 교차 빈 칸) |
 | 복사 / 붙여넣기 | Cmd/Ctrl+C / V |
-| 실행 취소 / 다시 실행 | Cmd/Ctrl+Z / Shift+Z 또는 Ctrl+Y |
+| 실행 취소 / 다시 실행 | 툴바 버튼 또는 Cmd/Ctrl+Z / Shift+Z·Ctrl+Y |
+| 시트 초기화 | 툴바 초기화 버튼 → 모달에서 확인 |
 | 선택 영역 비우기 | Backspace |
+| 사용 가이드 | 툴바 「사용 가이드」 |
 | 행·열 추가·삭제 | 행·열 헤더 **오른클릭** |
 
 ## Export 및 Google Sheets 검증
@@ -183,7 +199,9 @@ const CONFIG = {
 │   ├── ui/
 │   │   ├── GridRenderer.js
 │   │   ├── SheetTitleEditor.js
-│   │   └── ContextMenu.js
+│   │   ├── ContextMenu.js
+│   │   ├── HelpGuide.js
+│   │   └── ResetConfirmModal.js
 │   └── utils/
 │       ├── cellAddress.js
 │       ├── keyboard.js
@@ -204,7 +222,8 @@ const CONFIG = {
 
 | 모듈 | 역할 |
 |------|------|
-| `SpreadsheetApp` | 초기화, UI 동기화, 드래그·키보드, undo/redo, Export |
+| `SpreadsheetApp` | 초기화, UI 동기화, 드래그·키보드, undo/redo, 시트 초기화, Export |
+| `HelpGuide` / `ResetConfirmModal` | 사용 가이드·초기화 확인 모달 |
 | `SpreadsheetModel` | `data`·선택 상태, 행열 변경, 붙여넣기·범위 계산 |
 | `GridRenderer` | 그리드 DOM 생성·셀 이벤트 (구조 변경 시 전체 렌더, 동일 크기 시 값만 동기화) |
 | `UndoStack` | 실행 취소 스택 |
@@ -216,6 +235,7 @@ const CONFIG = {
 - [ ] 표·셀 입력·헤더 하이라이트가 정상인가요?
 - [ ] 범위·행·열 선택, 드래그, 오른클릭 추가·삭제가 동작하나요?
 - [ ] undo/redo, 복사·붙여넣기가 필요한 만큼 동작하나요?
+- [ ] 시트 초기화(확인 모달·5×5·저장 삭제)가 의도대로 동작하나요?
 - [ ] Excel Export·Google Sheets Import가 맞나요?
 - [ ] 새로고침 후 데이터·제목·크기가 유지되나요?
 - [ ] README와 `docs/PROMPT_LOG.md`를 포함했나요?
