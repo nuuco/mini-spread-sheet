@@ -2,6 +2,8 @@
 
 JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 셀 입력, 범위·행·열·전체 시트 선택, 포커스 좌표 표시, 행/열 헤더 하이라이트, 데이터 수집, Excel(.xlsx) Export, 실행 취소·다시 실행, 복사·붙여넣기, localStorage 자동 저장을 제공합니다.
 
+![미니 스프레드시트 실행 화면](docs/screenshots/app-screenshot.png)
+
 요구사항 문서: [docs/PRD.md](docs/PRD.md) · [docs/SRD.md](docs/SRD.md) · [docs/TRD.md](docs/TRD.md)  
 설계 상세: [docs/UNDO_REDO.md](docs/UNDO_REDO.md) (실행 취소·다시 실행)  
 트러블슈팅: [docs/TROUBLESHOOTING_KOREAN_IME.md](docs/TROUBLESHOOTING_KOREAN_IME.md) (한글 IME)
@@ -110,7 +112,8 @@ JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 
 ### 시트 제목·Export·저장
 
 - **시트 제목**: 툴바 제목 클릭 → 인라인 편집 (기본 표시 「제목없음」). Enter 저장, Esc 취소.
-- **Export Excel**: 그리드 **데이터만** 시트에 넣고, **파일명·워크시트 탭**에 제목 반영 (비어 있으면 `제목없음.xlsx`).
+- **Export Excel**: 그리드 **데이터만** 시트에 넣고, **파일명·워크시트 탭**에 제목 반영 (비어 있으면 `제목없음.xlsx`).  
+  위 화면과 동일한 데이터를 Export한 샘플: [exports/export_excel_sample.xlsx](exports/export_excel_sample.xlsx)
 - **localStorage**: 입력·구조 변경 후 **300ms** 뒤 자동 저장 (`mini-spreadsheet-data`: `rows`, `cols`, `data`, `title`).
 
 ---
@@ -186,8 +189,11 @@ const CONFIG = {
 ├── docs/
 │   ├── PRD.md · SRD.md · TRD.md
 │   ├── UNDO_REDO.md
+│   ├── screenshots/
+│   │   └── app-screenshot.png
 │   └── TROUBLESHOOTING_KOREAN_IME.md
 └── exports/
+    └── export_excel_sample.xlsx
 ```
 
 ## 코드 구조 (클래스·역할)
