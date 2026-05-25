@@ -125,7 +125,7 @@ flowchart TB
 | NFR-002 | 유지보수 | `js/` 모듈·클래스 단위 역할 분리 | SpreadsheetApp·Model·UI·services |
 | NFR-003 | 의존성 | 앱 로직은 Vanilla JS, Export만 SheetJS | CDN 0.20.3 |
 | NFR-004 | 배포 | `index.html`로 로컬 실행 가능 | Export 시 네트워크 필요 |
-| NFR-005 | UI | 데스크톱 우선, 720px/480px 이하 기본 반응형 | 툴바 줄바꿈·짧은 라벨·그리드 스크롤 |
+| NFR-005 | UI | 데스크톱 우선, 720px/480px 이하 기본 반응형 | 툴바 줄바꿈·480px 가이드 짧은 라벨·Export 아이콘만·그리드 스크롤 |
 | NFR-006 | 성능 | localStorage 저장 300ms debounce | |
 | NFR-007 | 접근성 | 셀·제목에 `aria-label` 제공 | |
 

@@ -124,7 +124,7 @@ let spreadsheet = {
 | 영역 | 요소 | 비고 |
 |------|------|------|
 | 1행 툴바 | `#sheet-title-wrap` | 시트 제목 |
-| 2행 툴바 | `#cell-coordinate`, undo/redo/`#reset-btn`, `#help-guide-btn`, `#export-btn` | 좌표·실행취소·초기화·가이드·Export |
+| 2행 툴바 | `#cell-coordinate`, undo/redo/`#reset-btn`, `#help-guide-btn`, `#export-btn` | 좌표·실행취소·초기화·가이드·Export(480px↓ 아이콘만) |
 | 플로팅 | `#reset-confirm-modal` | 시트 초기화 확인 (`ResetConfirmModal.js`) |
 | 시트 패널 | `#grid-size-label` | `N행 × M열` (우하단 오버레이) |
 | 본문 | `#spreadsheet` | `<table class="grid-table">` |
