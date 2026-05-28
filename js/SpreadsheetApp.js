@@ -312,6 +312,10 @@ export class SpreadsheetApp {
     const executed = this.perf.measure(`command:${actionName}`, () =>
       this.history.execute(command, this.model),
     );
+    if (!executed) {
+      this.updateHistoryButtons();
+      return null;
+    }
     this.editUndoRecorded = true;
     this.perf.measure(`render:${actionName}`, () => this.grid.renderByCommandMeta(executed.meta));
     if (persistMode === 'immediate') {
@@ -950,6 +954,9 @@ export class SpreadsheetApp {
 
   handleCellInput(row, col, value) {
     if (this.usePatchHistory) {
+      if ((this.model.data[row]?.[col] ?? '') === value) {
+        return;
+      }
       this.runStateCommand('셀 값 변경', (draft) => setCellValue(draft, row, col, value), {
         persistMode: 'schedule',
       });
@@ -961,11 +968,6 @@ export class SpreadsheetApp {
   }
 
   finishEditAndMoveDown(row, col) {
-    const input = this.grid.getCellInput(row, col);
-    if (input) {
-      this.handleCellInput(row, col, input.value);
-    }
-
     this.exitEditMode(row, col);
     this.blurActiveCellInput();
 

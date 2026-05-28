@@ -9,6 +9,9 @@ export class PatchHistory {
 
   execute(command, model) {
     command.execute(model);
+    if (Array.isArray(command.patches) && command.patches.length === 0) {
+      return null;
+    }
     this.undoStack.push(command);
     if (this.undoStack.length > this.maxSize) {
       this.undoStack.shift();
