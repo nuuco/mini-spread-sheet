@@ -51,6 +51,7 @@ export class SpreadsheetApp {
     this.perf = new PerfTracker();
     this.grid = new GridRenderer(this);
     this.editUndoRecorded = false;
+    this.editSession = null;
     this.saveTimer = null;
 
     this.drag = {
@@ -266,6 +267,7 @@ export class SpreadsheetApp {
     }
     this.exitEditMode();
     this.blurActiveCellInput();
+    this.editSession = null;
     this.model.clearSelection();
     this.refreshSelectionUI();
   }
@@ -338,6 +340,37 @@ export class SpreadsheetApp {
     }
   }
 
+  beginEditSession(row, col) {
+    this.editSession = {
+      row,
+      col,
+      originalValue: this.model.data[row]?.[col] ?? '',
+    };
+  }
+
+  commitEditSessionIfNeeded(row, col) {
+    if (!this.usePatchHistory || !this.editSession) {
+      return;
+    }
+    if (this.editSession.row !== row || this.editSession.col !== col) {
+      this.editSession = null;
+      return;
+    }
+
+    const { originalValue } = this.editSession;
+    const nextValue = this.model.data[row]?.[col] ?? '';
+    this.editSession = null;
+
+    if (originalValue === nextValue) {
+      return;
+    }
+
+    this.model.data[row][col] = originalValue;
+    this.runStateCommand('셀 값 변경', (draft) => setCellValue(draft, row, col, nextValue), {
+      persistMode: 'schedule',
+    });
+  }
+
   ensureEditUndoSnapshot() {
     if (this.usePatchHistory) {
       return;
@@ -352,6 +385,7 @@ export class SpreadsheetApp {
   undo() {
     this.syncActiveCellFromInput();
     this.blurActiveCellInput();
+    this.editSession = null;
     if (this.usePatchHistory) {
       const command = this.perf.measure('undo', () => this.history.undo(this.model));
       if (command) {
@@ -373,6 +407,7 @@ export class SpreadsheetApp {
   redo() {
     this.syncActiveCellFromInput();
     this.blurActiveCellInput();
+    this.editSession = null;
     if (this.usePatchHistory) {
       const command = this.perf.measure('redo', () => this.history.redo(this.model));
       if (command) {
@@ -402,6 +437,7 @@ export class SpreadsheetApp {
     this.model.resetToDefaults();
     this.history.clear();
     this.editUndoRecorded = false;
+    this.editSession = null;
     this.titleEditor.applyToField();
     this.grid.render();
     this.model.clearSelection();
@@ -427,6 +463,7 @@ export class SpreadsheetApp {
       return;
     }
     this.syncActiveCellFromInput();
+    this.commitEditSessionIfNeeded(active.row, active.col);
     this.editUndoRecorded = false;
     model.mode = 'select';
     this.refreshSelectionUI();
@@ -800,6 +837,7 @@ export class SpreadsheetApp {
     }
 
     this.editUndoRecorded = false;
+    this.beginEditSession(row, col);
     this.model.mode = 'edit';
     this.model.anchor = { row, col };
     this.model.focus = { row, col };
@@ -839,21 +877,14 @@ export class SpreadsheetApp {
       if (!input) {
         return;
       }
-      this.runStateCommand(
-        '선택 입력 시작',
-        (draft) => {
-          draft.mode = 'edit';
-          draft.anchor = { row, col };
-          draft.focus = { row, col };
-          draft.selectionKind = 'range';
-          if (input.value) {
-            setCellValue(draft, row, col, '');
-          }
-        },
-        { persistMode: 'schedule' },
-      );
+      this.beginEditSession(row, col);
+      this.model.mode = 'edit';
+      this.model.anchor = { row, col };
+      this.model.focus = { row, col };
+      this.model.selectionKind = 'range';
       if (input.value) {
         input.value = '';
+        this.model.data[row][col] = '';
       }
     } else {
       this.pushUndoSnapshot();
@@ -882,17 +913,12 @@ export class SpreadsheetApp {
   startTypingInActiveCell(char) {
     const { row, col } = this.model.getActiveCell();
     if (this.usePatchHistory) {
-      this.runStateCommand(
-        '텍스트 입력 시작',
-        (draft) => {
-          draft.anchor = { row, col };
-          draft.focus = { row, col };
-          draft.selectionKind = 'range';
-          draft.mode = 'edit';
-          setCellValue(draft, row, col, char);
-        },
-        { persistMode: 'schedule' },
-      );
+      this.beginEditSession(row, col);
+      this.model.anchor = { row, col };
+      this.model.focus = { row, col };
+      this.model.selectionKind = 'range';
+      this.model.mode = 'edit';
+      this.model.data[row][col] = char;
     } else {
       this.pushUndoSnapshot();
       this.editUndoRecorded = true;
@@ -921,6 +947,8 @@ export class SpreadsheetApp {
       }
     }
     if (!this.usePatchHistory) {
+      this.scheduleSave();
+    } else {
       this.scheduleSave();
     }
   }
@@ -954,6 +982,11 @@ export class SpreadsheetApp {
 
   handleCellInput(row, col, value) {
     if (this.usePatchHistory) {
+      if (this.model.mode === 'edit') {
+        this.model.data[row][col] = value;
+        this.scheduleSave();
+        return;
+      }
       if ((this.model.data[row]?.[col] ?? '') === value) {
         return;
       }

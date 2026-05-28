@@ -70,3 +70,4 @@
 - UNDO_REDO 문서 보강: 피드백 기반 A(스냅샷)→B(Immer Patch+Command) 전환 요약 섹션 추가
 - UNDO_REDO 문서 정합성 수정: 구 스냅샷 설명 제거·현행 PatchHistory/StatePatchCommand 흐름으로 전면 동기화
 - Undo 누적 이슈 완화: 동일값 입력 가드·no-op patch 스킵·Enter 중복 저장 경로 제거
+- Undo 입력 단위 통일: 편집 중 즉시 기록 대신 편집 종료 시 1회 커밋(한글/영문/숫자 체감 일치)
