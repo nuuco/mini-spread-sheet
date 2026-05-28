@@ -236,3 +236,20 @@ class History {
 - [README.md](../README.md) — 사용자용 단축키·undo 대상 요약
 - [TRD.md](./TRD.md) §11 — 기술 요약 표
 - [SRD.md](./SRD.md) §2.6 — 기능 요구 FR-033~034
+
+---
+
+## 12. 피드백 반영 요약 (A → B)
+
+대형 시트(100x100+)와 긴 문자열 환경에서, 전체 스냅샷 복제/비교/직렬화의 `O(Rows × Cols)` 비용이 커질 수 있다는 피드백을 반영했습니다.
+
+- A안 검토: **Command 기반 Delta 기록** (행동 맥락 보존 강점, 개별 커맨드 보일러플레이트 증가 한계)
+- B안 검토: **Patch/Diff(Immer) 기반 기록** (자동 diff 강점, 단독 사용 시 행동 맥락 유실 우려)
+- 최종 적용: **하이브리드(Immmer Patch + Command)**  
+  `StatePatchCommand` 1종으로 행동 이름은 Command가 담당하고, 미시 변경 이력은 Immer `produceWithPatches`가 자동 생성
+- 적용 결과: undo/redo는 `patches`/`inversePatches`를 재사용해 최소 변경만 복원하고, 렌더링도 변경 셀 중심 부분 갱신으로 전환
+
+### 변경 요약 (A → B)
+
+- **A(기존):** 스냅샷 중심 UndoStack (`createSnapshot/applySnapshot`, 전체 비교/복원)
+- **B(현재):** `PatchHistory + StatePatchCommand + Immer patches` 기반 최소 변경 복원 구조

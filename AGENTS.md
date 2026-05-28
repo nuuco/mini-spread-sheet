@@ -67,3 +67,4 @@
 - 툴바 점검 반영: Export `aria-label`·SVG 20px·focus-visible·480px CSS 중복 제거·AGENTS/SRD 모바일 문구
 - Export focus-visible: 흰색 링 제거·툴바 버튼과 동일 accent outline
 - Undo/Redo 하이브리드 전환: PatchHistory·StatePatchCommand·Immer patch·부분 렌더·PerfTracker 계측 도입
+- UNDO_REDO 문서 보강: 피드백 기반 A(스냅샷)→B(Immer Patch+Command) 전환 요약 섹션 추가
