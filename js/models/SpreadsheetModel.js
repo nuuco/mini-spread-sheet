@@ -68,6 +68,31 @@ export class SpreadsheetModel {
     return this.data.map((row) => [...row]);
   }
 
+  createPatchState() {
+    return {
+      rows: this.rows,
+      cols: this.cols,
+      data: this.collectData(),
+      title: this.title,
+      anchor: { ...this.anchor },
+      focus: { ...this.focus },
+      selectionKind: this.selectionKind,
+      mode: this.mode,
+    };
+  }
+
+  applyPatchState(state) {
+    this.rows = state.rows;
+    this.cols = state.cols;
+    this.data = state.data.map((row) => [...row]);
+    this.title = state.title ?? '';
+    this.anchor = { ...state.anchor };
+    this.focus = { ...state.focus };
+    this.selectionKind = state.selectionKind;
+    this.mode = state.mode;
+    this.clampSelection();
+  }
+
   clampPoint(point) {
     return {
       row: Math.max(0, Math.min(point.row, this.rows - 1)),

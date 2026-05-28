@@ -1,4 +1,4 @@
-import { CONFIG, SAVE_DEBOUNCE_MS } from './constants.js';
+import { CONFIG, SAVE_DEBOUNCE_MS, USE_PATCH_HISTORY } from './constants.js';
 import { formatCellAddress } from './utils/cellAddress.js';
 import {
   getArrowDelta,
@@ -23,18 +23,32 @@ import {
 } from './services/clipboard.js';
 import { StorageService } from './services/StorageService.js';
 import { SpreadsheetModel } from './models/SpreadsheetModel.js';
-import { UndoStack } from './models/UndoStack.js';
+import { SnapshotHistory } from './models/SnapshotHistory.js';
+import { PatchHistory } from './models/PatchHistory.js';
+import { StatePatchCommand } from './models/commands/StatePatchCommand.js';
+import {
+  clearSelectionContent,
+  deleteColumnRange,
+  deleteRowRange,
+  insertColumnsAt,
+  insertRowsAt,
+  pasteTableAt,
+  setCellValue,
+} from './models/statePatchMutators.js';
 import { GridRenderer } from './ui/GridRenderer.js';
 import { SheetTitleEditor } from './ui/SheetTitleEditor.js';
 import { ContextMenu } from './ui/ContextMenu.js';
 import { HelpGuide } from './ui/HelpGuide.js';
 import { ResetConfirmModal } from './ui/ResetConfirmModal.js';
+import { PerfTracker } from './services/PerfTracker.js';
 
 export class SpreadsheetApp {
   constructor() {
     this.model = new SpreadsheetModel(CONFIG);
-    this.history = new UndoStack();
+    this.history = USE_PATCH_HISTORY ? new PatchHistory() : new SnapshotHistory();
+    this.usePatchHistory = USE_PATCH_HISTORY;
     this.storage = new StorageService();
+    this.perf = new PerfTracker();
     this.grid = new GridRenderer(this);
     this.editUndoRecorded = false;
     this.saveTimer = null;
@@ -258,7 +272,7 @@ export class SpreadsheetApp {
 
   persist() {
     this.titleEditor.readFromFieldIfEditing();
-    this.storage.save(this.model);
+    this.perf.measure('persist', () => this.storage.save(this.model));
   }
 
   scheduleSave() {
@@ -272,16 +286,41 @@ export class SpreadsheetApp {
   }
 
   pushUndoSnapshot() {
+    if (this.usePatchHistory) {
+      return;
+    }
     this.history.push(this.model.createSnapshot());
     this.updateHistoryButtons();
   }
 
   applySnapshot(snapshot) {
+    if (this.usePatchHistory) {
+      return;
+    }
     this.model.applySnapshot(snapshot);
     this.editUndoRecorded = false;
-    this.grid.render();
+    this.perf.measure('render(full)', () => this.grid.render());
     this.persist();
     this.updateHistoryButtons();
+  }
+
+  runStateCommand(actionName, stateMutator, { persistMode = 'schedule' } = {}) {
+    if (!this.usePatchHistory) {
+      return null;
+    }
+    const command = new StatePatchCommand(actionName, stateMutator, { persistMode });
+    const executed = this.perf.measure(`command:${actionName}`, () =>
+      this.history.execute(command, this.model),
+    );
+    this.editUndoRecorded = true;
+    this.perf.measure(`render:${actionName}`, () => this.grid.renderByCommandMeta(executed.meta));
+    if (persistMode === 'immediate') {
+      this.persist();
+    } else {
+      this.scheduleSave();
+    }
+    this.updateHistoryButtons();
+    return executed;
   }
 
   syncActiveCellFromInput() {
@@ -296,6 +335,9 @@ export class SpreadsheetApp {
   }
 
   ensureEditUndoSnapshot() {
+    if (this.usePatchHistory) {
+      return;
+    }
     if (this.editUndoRecorded) {
       return;
     }
@@ -306,6 +348,16 @@ export class SpreadsheetApp {
   undo() {
     this.syncActiveCellFromInput();
     this.blurActiveCellInput();
+    if (this.usePatchHistory) {
+      const command = this.perf.measure('undo', () => this.history.undo(this.model));
+      if (command) {
+        this.editUndoRecorded = false;
+        this.perf.measure('render(undo)', () => this.grid.renderByCommandMeta(command.meta));
+        this.persist();
+      }
+      this.updateHistoryButtons();
+      return;
+    }
     const snapshot = this.history.undo(this.model.createSnapshot());
     if (snapshot) {
       this.applySnapshot(snapshot);
@@ -317,6 +369,16 @@ export class SpreadsheetApp {
   redo() {
     this.syncActiveCellFromInput();
     this.blurActiveCellInput();
+    if (this.usePatchHistory) {
+      const command = this.perf.measure('redo', () => this.history.redo(this.model));
+      if (command) {
+        this.editUndoRecorded = false;
+        this.perf.measure('render(redo)', () => this.grid.renderByCommandMeta(command.meta));
+        this.persist();
+      }
+      this.updateHistoryButtons();
+      return;
+    }
     const snapshot = this.history.redo(this.model.createSnapshot());
     if (snapshot) {
       this.applySnapshot(snapshot);
@@ -768,21 +830,39 @@ export class SpreadsheetApp {
       return;
     }
 
-    this.pushUndoSnapshot();
-    this.editUndoRecorded = true;
-    this.model.mode = 'edit';
-    this.model.anchor = { row, col };
-    this.model.focus = { row, col };
-    this.model.selectionKind = 'range';
+    if (this.usePatchHistory) {
+      const input = this.grid.getCellInput(row, col);
+      if (!input) {
+        return;
+      }
+      this.runStateCommand(
+        '선택 입력 시작',
+        (draft) => {
+          draft.mode = 'edit';
+          draft.anchor = { row, col };
+          draft.focus = { row, col };
+          draft.selectionKind = 'range';
+          if (input.value) {
+            setCellValue(draft, row, col, '');
+          }
+        },
+        { persistMode: 'schedule' },
+      );
+      if (input.value) {
+        input.value = '';
+      }
+    } else {
+      this.pushUndoSnapshot();
+      this.editUndoRecorded = true;
+      this.model.mode = 'edit';
+      this.model.anchor = { row, col };
+      this.model.focus = { row, col };
+      this.model.selectionKind = 'range';
+    }
 
     const input = this.grid.getCellInput(row, col);
     if (!input) {
       return;
-    }
-
-    if (input.value) {
-      input.value = '';
-      this.model.data[row][col] = '';
     }
 
     if (expectComposition) {
@@ -797,20 +877,33 @@ export class SpreadsheetApp {
 
   startTypingInActiveCell(char) {
     const { row, col } = this.model.getActiveCell();
-    this.pushUndoSnapshot();
-    this.editUndoRecorded = true;
-
-    this.model.anchor = { row, col };
-    this.model.focus = { row, col };
-    this.model.selectionKind = 'range';
-    this.model.data[row][col] = char;
+    if (this.usePatchHistory) {
+      this.runStateCommand(
+        '텍스트 입력 시작',
+        (draft) => {
+          draft.anchor = { row, col };
+          draft.focus = { row, col };
+          draft.selectionKind = 'range';
+          draft.mode = 'edit';
+          setCellValue(draft, row, col, char);
+        },
+        { persistMode: 'schedule' },
+      );
+    } else {
+      this.pushUndoSnapshot();
+      this.editUndoRecorded = true;
+      this.model.anchor = { row, col };
+      this.model.focus = { row, col };
+      this.model.selectionKind = 'range';
+      this.model.data[row][col] = char;
+      this.model.mode = 'edit';
+    }
 
     const input = this.grid.getCellInput(row, col);
     if (input) {
       input.value = char;
     }
 
-    this.model.mode = 'edit';
     this.refreshSelectionUI();
     input?.focus();
     input?.setSelectionRange(char.length, char.length);
@@ -823,7 +916,9 @@ export class SpreadsheetApp {
         }
       }
     }
-    this.scheduleSave();
+    if (!this.usePatchHistory) {
+      this.scheduleSave();
+    }
   }
 
   moveActiveCellBy(deltaRow, deltaCol, extend = false) {
@@ -854,6 +949,12 @@ export class SpreadsheetApp {
   }
 
   handleCellInput(row, col, value) {
+    if (this.usePatchHistory) {
+      this.runStateCommand('셀 값 변경', (draft) => setCellValue(draft, row, col, value), {
+        persistMode: 'schedule',
+      });
+      return;
+    }
     this.ensureEditUndoSnapshot();
     this.model.data[row][col] = value;
     this.scheduleSave();
@@ -879,8 +980,14 @@ export class SpreadsheetApp {
     if (!this.model.hasSelection()) {
       return;
     }
-    this.pushUndoSnapshot();
-    this.model.clearSelectionContent();
+    if (this.usePatchHistory) {
+      this.runStateCommand('선택 영역 비우기', (draft) => clearSelectionContent(draft), {
+        persistMode: 'immediate',
+      });
+    } else {
+      this.pushUndoSnapshot();
+      this.model.clearSelectionContent();
+    }
     const bounds = this.model.getSelectionBounds();
     if (!bounds) {
       return;
@@ -893,7 +1000,9 @@ export class SpreadsheetApp {
         }
       }
     }
-    this.persist();
+    if (!this.usePatchHistory) {
+      this.persist();
+    }
   }
 
   async copySelection() {
@@ -940,16 +1049,32 @@ export class SpreadsheetApp {
   }
 
   pasteTable(startRow, startCol, table) {
-    this.pushUndoSnapshot();
-    this.model.pasteTableAt(startRow, startCol, table);
+    if (this.usePatchHistory) {
+      this.runStateCommand(
+        '표 붙여넣기',
+        (draft) => {
+          pasteTableAt(draft, startRow, startCol, table);
+        },
+        { persistMode: 'immediate' },
+      );
+    } else {
+      this.pushUndoSnapshot();
+      this.model.pasteTableAt(startRow, startCol, table);
+    }
     this.blurActiveCellInput();
-    this.grid.render();
-    this.persist();
+    if (!this.usePatchHistory) {
+      this.grid.render();
+      this.persist();
+    }
   }
 
-  mutateGrid(mutator) {
+  mutateGrid(mutator, actionName = '그리드 변경') {
+    if (this.usePatchHistory) {
+      this.runStateCommand(actionName, mutator, { persistMode: 'immediate' });
+      return;
+    }
     this.pushUndoSnapshot();
-    mutator();
+    mutator(this.model);
     this.grid.render();
     this.persist();
   }
@@ -958,9 +1083,9 @@ export class SpreadsheetApp {
     if (type === 'row') {
       const ctx = this.model.getRowInsertContext(index);
       if (action === 'row-below') {
-        this.mutateGrid(() => this.model.insertRowsAt(ctx.belowIndex, ctx.count));
+        this.mutateGrid((draft) => insertRowsAt(draft, ctx.belowIndex, ctx.count), '행 아래 삽입');
       } else if (action === 'row-above') {
-        this.mutateGrid(() => this.model.insertRowsAt(ctx.aboveIndex, ctx.count));
+        this.mutateGrid((draft) => insertRowsAt(draft, ctx.aboveIndex, ctx.count), '행 위 삽입');
       } else if (action === 'row-delete') {
         this.deleteRows(index);
       }
@@ -970,9 +1095,9 @@ export class SpreadsheetApp {
     if (type === 'column') {
       const ctx = this.model.getColumnInsertContext(index);
       if (action === 'col-right') {
-        this.mutateGrid(() => this.model.insertColumnsAt(ctx.rightIndex, ctx.count));
+        this.mutateGrid((draft) => insertColumnsAt(draft, ctx.rightIndex, ctx.count), '열 오른쪽 삽입');
       } else if (action === 'col-left') {
-        this.mutateGrid(() => this.model.insertColumnsAt(ctx.leftIndex, ctx.count));
+        this.mutateGrid((draft) => insertColumnsAt(draft, ctx.leftIndex, ctx.count), '열 왼쪽 삽입');
       } else if (action === 'col-delete') {
         this.deleteColumns(index);
       }
@@ -983,26 +1108,26 @@ export class SpreadsheetApp {
     const { model } = this;
     const span = model.getRowSpanForHeaderMenu(contextIndex);
     if (span.count > 1) {
-      this.mutateGrid(() => model.deleteRowRange(span.rowMin, span.count));
+      this.mutateGrid((draft) => deleteRowRange(draft, span.rowMin, span.count), '행 범위 삭제');
       return;
     }
     if (model.rows <= 1) {
       return;
     }
-    this.mutateGrid(() => model.deleteRowAt(span.rowMin));
+    this.mutateGrid((draft) => deleteRowRange(draft, span.rowMin, 1), '행 삭제');
   }
 
   deleteColumns(contextIndex) {
     const { model } = this;
     const span = model.getColumnSpanForHeaderMenu(contextIndex);
     if (span.count > 1) {
-      this.mutateGrid(() => model.deleteColumnRange(span.colMin, span.count));
+      this.mutateGrid((draft) => deleteColumnRange(draft, span.colMin, span.count), '열 범위 삭제');
       return;
     }
     if (model.cols <= 1) {
       return;
     }
-    this.mutateGrid(() => model.deleteColumnAt(span.colMin));
+    this.mutateGrid((draft) => deleteColumnRange(draft, span.colMin, 1), '열 삭제');
   }
 
   export() {

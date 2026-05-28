@@ -517,4 +517,32 @@ export class GridRenderer {
     this.syncCellValues();
     this.finishRender();
   }
+
+  renderByCommandMeta(meta = null) {
+    if (!meta) {
+      this.render();
+      return;
+    }
+    if (meta.structureChanged || this.needsFullRender()) {
+      this.renderFull();
+      return;
+    }
+    this.syncSpecificCellValues(meta.changedCells ?? []);
+    this.finishRender();
+  }
+
+  syncSpecificCellValues(changedCells) {
+    const { model } = this.app;
+    changedCells.forEach(({ row, col }) => {
+      const input = this.getCellInput(row, col);
+      if (!input) {
+        return;
+      }
+      const nextValue = model.data[row][col] ?? '';
+      if (input.value !== nextValue) {
+        input.value = nextValue;
+        GridRenderer.updateCellInputLayout(input);
+      }
+    });
+  }
 }

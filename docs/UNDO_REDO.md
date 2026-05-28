@@ -9,13 +9,13 @@
 
 | 항목 | 내용 |
 |------|------|
-| 패턴 | **스냅샷 + 이중 스택** (Command 객체 패턴 아님) |
-| 되돌리는 단위 | 그리드 `{ rows, cols, data }` 전체 |
+| 패턴 | **Immer Patch + Command + 이중 스택** (`StatePatchCommand`) |
+| 되돌리는 단위 | patch / inversePatch (RFC 6902 경로 기반) |
 | 제외 | 시트 **제목** (`title`) — undo/redo 대상 아님 |
 | 최대 단계 | 100 (`MAX_UNDO_STACK`, `js/constants.js`) |
 | 단축키 | Cmd/Ctrl+Z (취소), Cmd/Ctrl+Shift+Z·Ctrl+Y (다시 실행) |
 
-**한 줄 요약:** 변경 **직전** 상태를 사진(스냅샷)으로 undo 스택에 쌓고, 실행 취소 시 **현재** 상태는 redo 스택에 넣은 뒤 undo 스택 맨 위 스냅샷으로 모델·UI를 통째로 복원합니다.
+**한 줄 요약:** 사용자 동작을 `StatePatchCommand`로 기록하고, 최초 실행 시 Immer가 생성한 `patches`/`inversePatches`를 undo/redo에서 재사용해 최소 변경만 복원합니다.
 
 ---
 
@@ -23,27 +23,30 @@
 
 | 파일 | 역할 |
 |------|------|
-| `js/models/UndoStack.js` | undo/redo 스택, push·pop, 중복 스냅샷 생략 |
-| `js/models/SpreadsheetModel.js` | `createSnapshot`, `applySnapshot`, `collectData` |
-| `js/SpreadsheetApp.js` | `pushUndoSnapshot`, `undo`/`redo`, push 시점, 편집 플래그 |
+| `js/models/commands/StatePatchCommand.js` | `produceWithPatches`/`applyPatches`, 메타 생성 |
+| `js/models/PatchHistory.js` | command 기반 undo/redo 스택 |
+| `js/models/SpreadsheetModel.js` | `createPatchState`, `applyPatchState` |
+| `js/models/statePatchMutators.js` | 행/열/붙여넣기/삭제 patch mutator |
+| `js/SpreadsheetApp.js` | `runStateCommand`, 액션별 command 실행 |
+| `js/ui/GridRenderer.js` | `renderByCommandMeta` 셀 단위 부분 갱신 |
+| `js/services/PerfTracker.js` | undo/redo/render/persist 계측 로그 |
 | `js/utils/keyboard.js` | `isUndoShortcut`, `isRedoShortcut` |
 | `js/constants.js` | `MAX_UNDO_STACK` |
 
 ---
 
-## 3. 스냅샷 구조
+## 3. 커맨드 구조
 
 ```javascript
-// SpreadsheetModel.createSnapshot()
-{
-  rows: number,
-  cols: number,
-  data: string[][],  // collectData() — 행마다 [...row] 얕은 복사
-}
+new StatePatchCommand(actionName, (draftState) => {
+  // draftState.rows/cols/data/selection...
+  // statePatchMutators 함수로 상태 변경
+});
 ```
 
-- `applySnapshot`: `rows`/`cols`/`data` 덮어쓰기, `mode = 'select'`, `clampSelection()`으로 선택 범위 보정.
-- 문자열 셀 값은 불변이라, **내용이 안 바뀐 셀**은 여러 스냅샷이 같은 문자열 참조를 공유할 수 있습니다. 내용이 바뀌면 새 문자열이 쌓입니다.
+- 최초 실행에서 Immer `produceWithPatches`로 `patches`/`inversePatches`를 생성합니다.
+- undo는 `inversePatches`, redo는 `patches`를 `applyPatches`로 적용합니다.
+- command 메타(`changedCells`, `structureChanged`)를 렌더러에 전달해 부분 갱신합니다.
 
 ---
 
@@ -148,26 +151,28 @@ flowchart LR
 
 ---
 
-## 8. 성능·부하 우려
+## 8. 성능·검증 기준선
 
 ### 8.1 왜 부담이 생기는가
 
-| 시점 | 비용 |
+| 시점 | 측정 항목 |
 |------|------|
-| **push** | 전체 `rows×cols` 배열 복사 + (맨 위와 다를 때) 전 셀 `snapshotsEqual` |
-| **undo/redo** | 현재 스냅샷 복사 + 복원 스냅샷으로 `applySnapshot` 시 **또** 행 배열 복사 |
-| **메모리** | undo 스택 최대 **100** × (시트 1벌 분량) 상한 (내용이 달라질수록 문자열 heap 증가) |
-| **저장** | `applySnapshot`마다 `JSON.stringify` 전체 시트 → **localStorage** (브라우저 할당량·직렬화 시간) |
-| **DOM** | `grid.render()` — 행·열 수가 같으면 `syncCellValues`만, 크기 변경 시 전체 재렌더 |
+| **command 실행** | `command:<액션명>` 소요 시간(ms) |
+| **undo/redo** | `undo`, `redo` 소요 시간(ms) |
+| **저장** | `persist` 직렬화/저장 시간(ms) |
+| **렌더** | `render:<액션명>`, `render(undo)`, `render(redo)` |
 
 그리드 **최대 행·열 상한은 없음** (`ensureGridSize`, 붙여넣기·행열 삽입으로 확장 가능). 기본값은 5×5(`CONFIG`)이나, 대량 paste 시 셀 수가 급증할 수 있습니다.
 
-### 8.2 현재 완화 장치
+### 8.2 계측 방법
 
-1. 스택 깊이 **100** 고정.
-2. 동일 스냅샷 **중복 push 생략**.
-3. 셀 편집은 **세션당 push 1회**.
-4. 렌더는 크기 동일 시 **값만 동기화** (`GridRenderer.render`).
+1. `js/constants.js`에서 `ENABLE_PERF_LOG = true`.
+2. 브라우저 DevTools Console에서 `[perf]` 로그 확인.
+3. 시나리오 고정:
+   - 100x100, 200x200 그리드에서 긴 문자열 붙여넣기
+   - 행/열 다중 삽입·삭제 20회
+   - undo/redo 연속 50회
+4. 지표 비교: 평균/최대 `undo`, `redo`, `persist`, `render` 시간.
 
 ### 8.3 부담이 커지는 사용 예
 

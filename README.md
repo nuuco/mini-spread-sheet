@@ -26,7 +26,7 @@ JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 
 - 시트 제목 (툴바 인라인 편집, Export 파일명·탭명)
 - 행·열 추가·삭제 (헤더 오른클릭, 다중 선택 일괄 처리)
 - 범위·행·열·전체 시트 선택 (클릭, 드래그, Shift, 방향키)
-- 실행 취소·다시 실행 (최대 100단계, 툴바 아이콘·단축키)
+- 실행 취소·다시 실행 (최대 100단계, Immer Patch + Command 기반)
 - 시트 초기화 (다시 실행 옆 버튼, 확인 모달 후 5×5 빈 시트·저장·undo 초기화)
 - 복사·붙여넣기 (TSV / HTML 표 / 마크다운 표, 그리드 자동 확장)
 - localStorage 자동 저장 (데이터·크기·제목)
@@ -99,7 +99,7 @@ JavaScript로 만든 미니 스프레드시트 웹 애플리케이션입니다. 
 | **Cmd/Ctrl + Shift + Z** | 다시 실행 |
 | **Ctrl + Y** | 다시 실행 (Windows 스타일) |
 
-- **그리드 데이터·행·열 개수**만 스냅샷합니다 (최대 **100단계**). 시트 제목 변경은 undo 대상이 아닙니다.
+- undo/redo는 `StatePatchCommand` + Immer patch로 동작하며, 최소 변경 patch를 스택에 저장합니다(최대 **100단계**). 시트 제목 변경은 undo 대상이 아닙니다.
 - 되돌릴 수 있는 예: 셀 편집, 선택 영역 삭제, 행·열 추가·삭제, 붙여넣기 등 `pushUndoSnapshot`이 호출되는 작업.
 - 구현·성능·확장 시 우려: [docs/UNDO_REDO.md](docs/UNDO_REDO.md)
 
@@ -192,10 +192,16 @@ const CONFIG = {
 │   ├── constants.js
 │   ├── models/
 │   │   ├── SpreadsheetModel.js # 데이터·선택·행열 연산
-│   │   └── UndoStack.js
+│   │   ├── UndoStack.js
+│   │   ├── SnapshotHistory.js
+│   │   ├── PatchHistory.js
+│   │   ├── statePatchMutators.js
+│   │   └── commands/
+│   │       └── StatePatchCommand.js
 │   ├── services/
 │   │   ├── StorageService.js
-│   │   └── clipboard.js
+│   │   ├── clipboard.js
+│   │   └── PerfTracker.js
 │   ├── ui/
 │   │   ├── GridRenderer.js
 │   │   ├── SheetTitleEditor.js

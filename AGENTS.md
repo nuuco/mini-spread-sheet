@@ -66,3 +66,4 @@
 - 툴바 버튼 높이 재수정: `--toolbar-btn-height` 고정 height·세로 padding 제거·아이콘 20px 통일
 - 툴바 점검 반영: Export `aria-label`·SVG 20px·focus-visible·480px CSS 중복 제거·AGENTS/SRD 모바일 문구
 - Export focus-visible: 흰색 링 제거·툴바 버튼과 동일 accent outline
+- Undo/Redo 하이브리드 전환: PatchHistory·StatePatchCommand·Immer patch·부분 렌더·PerfTracker 계측 도입
