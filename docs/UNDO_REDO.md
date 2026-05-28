@@ -1,6 +1,6 @@
 # 실행 취소·다시 실행 (Undo / Redo)
 
-이 문서는 미니 스프레드시트에 구현된 undo/redo 방식, 코드 위치, 동작 규칙, 성능·확장 시 우려 지점을 정리합니다.  
+이 문서는 미니 스프레드시트의 현재 undo/redo 구현(하이브리드: Immer Patch + Command)과 실제 코드 동작을 기준으로 정리합니다.  
 요구사항 요약은 [SRD.md](./SRD.md) §2.6, 기술 개요는 [TRD.md](./TRD.md) §11을 참고하세요.
 
 ---
@@ -9,13 +9,13 @@
 
 | 항목 | 내용 |
 |------|------|
-| 패턴 | **Immer Patch + Command + 이중 스택** (`StatePatchCommand`) |
+| 패턴 | **Immer Patch + Command + 이중 스택** (`StatePatchCommand`, `PatchHistory`) |
 | 되돌리는 단위 | patch / inversePatch (RFC 6902 경로 기반) |
 | 제외 | 시트 **제목** (`title`) — undo/redo 대상 아님 |
 | 최대 단계 | 100 (`MAX_UNDO_STACK`, `js/constants.js`) |
 | 단축키 | Cmd/Ctrl+Z (취소), Cmd/Ctrl+Shift+Z·Ctrl+Y (다시 실행) |
 
-**한 줄 요약:** 사용자 동작을 `StatePatchCommand`로 기록하고, 최초 실행 시 Immer가 생성한 `patches`/`inversePatches`를 undo/redo에서 재사용해 최소 변경만 복원합니다.
+**한 줄 요약:** 사용자 동작을 `StatePatchCommand`로 기록하고, 최초 실행 시 생성한 `patches`/`inversePatches`를 undo/redo에서 재사용해 최소 변경만 복원합니다.
 
 ---
 
@@ -23,19 +23,19 @@
 
 | 파일 | 역할 |
 |------|------|
-| `js/models/commands/StatePatchCommand.js` | `produceWithPatches`/`applyPatches`, 메타 생성 |
+| `js/models/commands/StatePatchCommand.js` | `produceWithPatches`/`applyPatches`, command 메타(`changedCells`, `structureChanged`) 생성 |
 | `js/models/PatchHistory.js` | command 기반 undo/redo 스택 |
+| `js/models/SnapshotHistory.js` | 스냅샷 방식 호환용 래퍼(`USE_PATCH_HISTORY=false`일 때) |
 | `js/models/SpreadsheetModel.js` | `createPatchState`, `applyPatchState` |
-| `js/models/statePatchMutators.js` | 행/열/붙여넣기/삭제 patch mutator |
-| `js/SpreadsheetApp.js` | `runStateCommand`, 액션별 command 실행 |
-| `js/ui/GridRenderer.js` | `renderByCommandMeta` 셀 단위 부분 갱신 |
-| `js/services/PerfTracker.js` | undo/redo/render/persist 계측 로그 |
-| `js/utils/keyboard.js` | `isUndoShortcut`, `isRedoShortcut` |
-| `js/constants.js` | `MAX_UNDO_STACK` |
+| `js/models/statePatchMutators.js` | 셀/붙여넣기/행열 삽입·삭제 mutator |
+| `js/SpreadsheetApp.js` | `runStateCommand`, 액션별 command 실행, undo/redo 진입점 |
+| `js/ui/GridRenderer.js` | `renderByCommandMeta` 기반 부분 렌더 |
+| `js/services/PerfTracker.js` | command/undo/redo/render/persist 계측 로그 |
+| `js/constants.js` | `MAX_UNDO_STACK`, `USE_PATCH_HISTORY`, `ENABLE_PERF_LOG` |
 
 ---
 
-## 3. 커맨드 구조
+## 3. 실행 구조
 
 ```javascript
 new StatePatchCommand(actionName, (draftState) => {
@@ -44,190 +44,179 @@ new StatePatchCommand(actionName, (draftState) => {
 });
 ```
 
-- 최초 실행에서 Immer `produceWithPatches`로 `patches`/`inversePatches`를 생성합니다.
-- undo는 `inversePatches`, redo는 `patches`를 `applyPatches`로 적용합니다.
-- command 메타(`changedCells`, `structureChanged`)를 렌더러에 전달해 부분 갱신합니다.
+- 최초 `execute`에서 Immer `produceWithPatches`로 `patches`/`inversePatches`를 생성합니다.
+- 이후 redo는 저장된 `patches`, undo는 `inversePatches`를 `applyPatches`로 적용합니다.
+- patch 경로를 파싱해 변경 셀 메타를 만들고(`changedCells`), 렌더러가 부분 갱신에 사용합니다.
 
 ---
 
-## 4. UndoStack 동작
+## 4. PatchHistory 동작
 
-### 4.1 push
+### 4.1 execute(command, model)
 
-1. undo 스택 **맨 위**와 새 스냅샷이 `snapshotsEqual`이면 push **생략**.
-2. 아니면 undo 스택에 push.
-3. 길이가 `maxSize`(100)를 넘으면 `shift()`로 가장 오래된 항목 제거.
-4. **`redoStack = []`** — 새 분기가 생기면 다시 실행 경로는 무효.
+1. `command.execute(model)` 실행
+2. command를 `undoStack`에 push
+3. 스택이 100 초과 시 오래된 항목 제거(`shift`)
+4. 새 분기 생성으로 `redoStack = []`
 
-### 4.2 undo(currentSnapshot)
+### 4.2 undo(model)
 
-1. undo 스택이 비어 있으면 `null`.
-2. **현재** `currentSnapshot`을 redo 스택에 push.
-3. undo 스택에서 `pop()`한 스냅샷 반환 → 호출 측에서 `applySnapshot`.
+1. undo 가능 여부 확인
+2. `undoStack.pop()`으로 command 획득
+3. `command.undo(model)` 실행
+4. command를 `redoStack`에 push
 
-### 4.3 redo(currentSnapshot)
+### 4.3 redo(model)
 
-undo와 대칭: 현재를 undo 스택에 push, redo에서 pop.
-
-### 4.4 스냅샷 동등 비교
-
-`rows`, `cols`가 같고, 모든 `(row, col)` 셀 문자열이 `===`로 같을 때만 동일로 간주합니다. push마다 **O(rows × cols)** 비교가 들어갑니다.
+1. redo 가능 여부 확인
+2. `redoStack.pop()`으로 command 획득
+3. `command.execute(model)` 재실행(저장된 patches 재사용)
+4. command를 `undoStack`에 push
 
 ---
 
 ## 5. SpreadsheetApp 연동
 
-### 5.1 저장 (push)
+### 5.1 공통 실행 경로
 
 ```text
-pushUndoSnapshot()
-  → history.push(model.createSnapshot())
-  → updateHistoryButtons()
+runStateCommand(actionName, mutator, persistMode)
+  → new StatePatchCommand(...)
+  → history.execute(command, model)
+  → grid.renderByCommandMeta(command.meta)
+  → persistMode 기준 저장(immediate 또는 schedule)
+  → 히스토리 버튼 상태 갱신
 ```
 
-### 5.2 실행 취소 / 다시 실행
+### 5.2 undo / redo 경로
 
 ```text
 undo() / redo()
-  → syncActiveCellFromInput()   // 편집 중 textarea → model.data
+  → syncActiveCellFromInput()     // 편집 중 textarea → model.data 동기화
   → blurActiveCellInput()
-  → history.undo/redo(model.createSnapshot())
-  → applySnapshot(snapshot)     // model + grid.render() + persist() + 버튼 갱신
+  → history.undo(model) / history.redo(model)
+  → grid.renderByCommandMeta(command.meta)
+  → persist()                     // 즉시 저장
+  → 히스토리 버튼 상태 갱신
 ```
 
-- undo/redo 직후 **localStorage 즉시 저장** (`persist()`). 일반 입력은 300ms debounce(`scheduleSave`)와 다릅니다.
+### 5.3 액션별 persist 정책
 
-### 5.3 툴바·키보드
+- `persistMode: 'schedule'`
+  - `셀 값 변경`, `텍스트 입력 시작`, `선택 입력 시작`
+- `persistMode: 'immediate'`
+  - `선택 영역 비우기`, `표 붙여넣기`, 행/열 삽입·삭제 계열
+
+### 5.4 툴바·키보드
 
 - `#undo-btn`, `#redo-btn`: `history.canUndo()` / `canRedo()`로 `disabled`.
-- `document` capture `keydown`: `isGridKeyboardTarget`이 false면 그리드 단축키(undo 포함) 무시 (툴바·가이드 모달 포커스 등).
+- `document` capture `keydown`: `isGridKeyboardTarget`이 false면 그리드 단축키(undo 포함) 무시.
 
 ---
 
-## 6. 스냅샷을 넣는 시점 (push)
+## 6. command가 쌓이는 주요 시점
 
-**원칙:** 데이터·그리드 크기를 **바꾸기 직전**에 `pushUndoSnapshot()`.
+**원칙:** 데이터 또는 구조를 바꾸는 사용자 액션은 `runStateCommand(...)`로 실행합니다.
 
-| 작업 | 호출 경로 |
-|------|-----------|
-| 행·열 추가·삭제 | `mutateGrid()` 맨 앞 |
-| 붙여넣기 | `pasteTable()` |
-| 선택 영역 삭제 (Backspace) | `clearSelectedContent()` |
-| 선택 모드에서 타이핑 시작 | `startTypingInActiveCell()` |
-| IME/beforeinput으로 편집 진입 | `prepareCellEditFromInput()` |
-| 편집 중 값 변경 (첫 변경만) | `handleCellInput()` → `ensureEditUndoSnapshot()` |
-
-`mutateGrid` 예:
-
-```javascript
-mutateGrid(mutator) {
-  this.pushUndoSnapshot();
-  mutator();
-  this.grid.render();
-  this.persist();
-}
-```
-
-### 6.1 셀 편집 — 한 세션당 스냅샷 1개
-
-- `editUndoRecorded`: 이미 이번 편집에서 push 했으면 `ensureEditUndoSnapshot()`은 스킵.
-- 편집 종료(`exitEditMode`), 스냅샷 적용(`applySnapshot`) 등에서 `false`로 리셋.
-- **글자마다** undo 스택에 쌓이지 않음 → undo 한 번에 「편집 시작 전 셀 내용」으로 복귀.
+| 작업 | 액션명 | mutator |
+|------|--------|---------|
+| 선택 모드 입력 시작 | `선택 입력 시작` | 인접 코드 inline mutator + `setCellValue` |
+| 선택 모드 타이핑 시작 | `텍스트 입력 시작` | `setCellValue` |
+| 셀 입력 변경 | `셀 값 변경` | `setCellValue` |
+| 선택 영역 삭제 | `선택 영역 비우기` | `clearSelectionContent` |
+| 표 붙여넣기 | `표 붙여넣기` | `pasteTableAt` |
+| 행 삽입 | `행 위/아래 삽입` | `insertRowsAt` |
+| 열 삽입 | `열 왼쪽/오른쪽 삽입` | `insertColumnsAt` |
+| 행 삭제 | `행 삭제/행 범위 삭제` | `deleteRowRange` |
+| 열 삭제 | `열 삭제/열 범위 삭제` | `deleteColumnRange` |
 
 ---
 
-## 7. 데이터 흐름 (다이어그램)
+## 7. 데이터 흐름 (현재)
 
 ```mermaid
 flowchart LR
-  A[사용자 작업] --> B[pushUndoSnapshot]
-  B --> C[undo 스택]
-  B --> D[redo 스택 비움]
-  E[Cmd+Z] --> F[현재 스냅샷 → redo]
-  F --> G[undo pop → applySnapshot]
-  H[Redo 단축키] --> I[현재 → undo]
-  I --> J[redo pop → applySnapshot]
+  A[사용자 액션] --> B[runStateCommand]
+  B --> C[StatePatchCommand execute]
+  C --> D[produceWithPatches]
+  D --> E[undoStack push]
+  E --> F[renderByCommandMeta]
+  F --> G[persist immediate or schedule]
+  H[Cmd/Ctrl+Z] --> I[history.undo]
+  I --> J[inversePatches 적용]
+  J --> K[renderByCommandMeta + persist]
+  L[Redo 단축키] --> M[history.redo]
+  M --> N[patches 재적용]
+  N --> O[renderByCommandMeta + persist]
 ```
 
 ---
 
 ## 8. 성능·검증 기준선
 
-### 8.1 왜 부담이 생기는가
+### 8.1 계측 항목
 
 | 시점 | 측정 항목 |
-|------|------|
-| **command 실행** | `command:<액션명>` 소요 시간(ms) |
-| **undo/redo** | `undo`, `redo` 소요 시간(ms) |
-| **저장** | `persist` 직렬화/저장 시간(ms) |
-| **렌더** | `render:<액션명>`, `render(undo)`, `render(redo)` |
-
-그리드 **최대 행·열 상한은 없음** (`ensureGridSize`, 붙여넣기·행열 삽입으로 확장 가능). 기본값은 5×5(`CONFIG`)이나, 대량 paste 시 셀 수가 급증할 수 있습니다.
+|------|-----------|
+| command 실행 | `command:<액션명>` |
+| undo/redo | `undo`, `redo` |
+| 저장 | `persist` |
+| 렌더 | `render:<액션명>`, `render(undo)`, `render(redo)` |
 
 ### 8.2 계측 방법
 
 1. `js/constants.js`에서 `ENABLE_PERF_LOG = true`.
-2. 브라우저 DevTools Console에서 `[perf]` 로그 확인.
+2. DevTools Console에서 `[perf]` 로그 확인.
 3. 시나리오 고정:
    - 100x100, 200x200 그리드에서 긴 문자열 붙여넣기
    - 행/열 다중 삽입·삭제 20회
    - undo/redo 연속 50회
-4. 지표 비교: 평균/최대 `undo`, `redo`, `persist`, `render` 시간.
+4. 평균/최대 `undo`, `redo`, `persist`, `render` 시간을 비교.
 
-### 8.3 부담이 커지는 사용 예
+### 8.3 주의 구간
 
-- 수백×수백 이상 격자 + 셀마다 긴 텍스트.
-- 붙여넣기·행열 조작을 **많이** 해 undo 스택 100칸이 모두 **서로 다른** 대형 시트인 경우.
-- undo를 연속으로 눌러 `persist()`·`render()`가 반복되는 경우.
-
-**미니 시트 + 소규모 데이터**에서는 구현 단순성 대비 실용적으로 충분한 수준입니다. Excel급 대용량은 **의도적 트레이드오프**입니다.
-
-### 8.4 확장 시 검토할 개선 (미구현)
-
-| 방향 | 설명 |
-|------|------|
-| 변경분만 저장 | 전체 `data` 대신 diff/patch 또는 변경 영역 bounding box만 스냅샷 |
-| 상한 | `MAX_ROWS` / `MAX_COLS` / 셀당 최대 글자 수 |
-| undo 시 저장 | `persist()`를 debounce하거나 undo 전용 플래그로 묶기 |
-| 제목 포함 | 필요 시 스냅샷에 `title` 필드 추가 (현재 SRD·README와 불일치 주의) |
+- 대형 격자 + 긴 문자열 + 빈번한 구조 변경이 겹치면 비용이 증가합니다.
+- 구조 변경(`rows`/`cols` 변경) command는 부분 렌더 대신 전체 렌더로 전환될 수 있습니다.
 
 ---
 
 ## 9. 알려진 제한 (요구사항과 일치)
 
 - 시트 제목 변경은 undo 대상이 **아님** ([SRD.md](./SRD.md) FR-034, [README.md](../README.md)).
-- **시트 초기화**(`resetSheet`) 시 undo·redo 스택을 `clear()`하며, 초기화 자체는 undo로 되돌릴 수 없음 ([README.md](../README.md)).
-- 선택 상태(`anchor`/`focus`/`selectionKind`)는 스냅샷에 없음. 복원 후 `clampSelection()`으로 범위만 맞춤.
-- 편집 undo는 **한 편집 세션 = undo 1단계** (글자 단위 undo 아님).
+- **시트 초기화**(`resetSheet`)는 히스토리를 `clear()`하며, 초기화 자체는 undo로 복구하지 않습니다.
+- `USE_PATCH_HISTORY=false`로 내리면 `SnapshotHistory` 경로로 동작하지만, 기본값은 `true`입니다.
 
 ---
 
-## 10. 다른 프로젝트에 옮길 때 최소 골격
+## 10. 다른 프로젝트에 옮길 때 최소 골격 (현재 방식)
 
 ```javascript
-class History {
+class PatchHistory {
   undoStack = [];
   redoStack = [];
-  push(snap) {
-    this.undoStack.push(snap);
+  execute(command, model) {
+    command.execute(model);
+    this.undoStack.push(command);
     this.redoStack = [];
   }
-  undo(current) {
-    if (!this.undoStack.length) return null;
-    this.redoStack.push(current);
-    return this.undoStack.pop();
+  undo(model) {
+    const command = this.undoStack.pop();
+    if (!command) return null;
+    command.undo(model);
+    this.redoStack.push(command);
+    return command;
   }
-  redo(current) {
-    if (!this.redoStack.length) return null;
-    this.undoStack.push(current);
-    return this.redoStack.pop();
+  redo(model) {
+    const command = this.redoStack.pop();
+    if (!command) return null;
+    command.execute(model);
+    this.undoStack.push(command);
+    return command;
   }
 }
-
-// 사용: 변경 전 history.push(clone(state)); undo 시 clone(state)를 넘기고 pop 결과로 state 복원 + UI 갱신
 ```
 
-이 저장소에서는 위 골격에 `SpreadsheetModel` 스냅샷, `GridRenderer.render`, 편집 input 동기화, push 타이밍(`mutateGrid`·편집 플래그)이 추가된 형태입니다.
+핵심은 **행동 맥락은 Command**, **미시 변경은 Patch**로 분리하는 하이브리드 구조입니다.
 
 ---
 
@@ -245,7 +234,7 @@ class History {
 
 - A안 검토: **Command 기반 Delta 기록** (행동 맥락 보존 강점, 개별 커맨드 보일러플레이트 증가 한계)
 - B안 검토: **Patch/Diff(Immer) 기반 기록** (자동 diff 강점, 단독 사용 시 행동 맥락 유실 우려)
-- 최종 적용: **하이브리드(Immmer Patch + Command)**  
+- 최종 적용: **하이브리드(Immer Patch + Command)**  
   `StatePatchCommand` 1종으로 행동 이름은 Command가 담당하고, 미시 변경 이력은 Immer `produceWithPatches`가 자동 생성
 - 적용 결과: undo/redo는 `patches`/`inversePatches`를 재사용해 최소 변경만 복원하고, 렌더링도 변경 셀 중심 부분 갱신으로 전환
 
